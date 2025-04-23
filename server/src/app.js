@@ -14,7 +14,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: ['http://127.0.0.1:5173/'], // or '*' to allow all (not recommended for production)
+    origin: ['http://127.0.0.1:5173', 'http://localhost:5173'], // or '*' to allow all (not recommended for production)
     methods: ['GET', 'POST', 'DELETE', 'PATCH'],
     credentials: true,
   }),
