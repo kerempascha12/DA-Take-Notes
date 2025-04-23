@@ -1,0 +1,5 @@
+CREATE TABLE powerpoint_file (
+    powerpoint_id SERIAL PRIMARY KEY,
+    src TEXT
+);
+
