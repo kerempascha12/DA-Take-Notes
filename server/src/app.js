@@ -5,7 +5,7 @@ import cors from 'cors';
 import path from 'path';
 
 import uploadsRouter from './api/routes/upload.js';
-import databaseRouter from './api/routes/dbPDF.js';
+import databaseRouter from './api/routes/db.js';
 
 const dirname = path.resolve();
 

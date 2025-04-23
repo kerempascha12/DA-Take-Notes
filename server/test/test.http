@@ -1,3 +1,5 @@
+//PDFs
+
 POST http://localhost:3000/database/addPDF
 Content-Type: application/json
 
@@ -33,4 +35,27 @@ Content-Type: application/json
 {
   "title": "Patch test title33",
   "content": "Patch test content"
+}
+
+// PowerPoint
+
+###
+GET http://localhost:3000/database/pptDateien
+###
+GET http://localhost:3000/database/pptDatei/1
+###
+DELETE http://localhost:3000/database/pptDatei/1
+
+// PowerPoint Notizen
+###
+GET http://localhost:3000/database/pptNotizen
+###
+POST http://localhost:3000/database/pptNotiz
+Content-Type: application/json
+
+{
+  "title": "Die Zweite Testnotiz für PowerPoint.",
+  "content": "Das ist ein Inhalt von einer PowerPoint-Notiz",
+  "userID": 1,
+  "pptID": 2
 }
