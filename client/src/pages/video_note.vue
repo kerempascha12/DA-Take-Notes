@@ -70,8 +70,8 @@ onBeforeUnmount(() => {
       <iframe
         style="border-radius: 10px"
         class="shadow-8"
-        width="768"
-        height="432"
+        width="768px"
+        height="432px"
         :src="videoUrl"
         frameborder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
