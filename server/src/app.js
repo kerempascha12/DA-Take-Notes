@@ -12,9 +12,11 @@ const dirname = path.resolve();
 dotenv.config();
 const app = express();
 
+app.use(cors);
+
 app.use(
   cors({
-    origin: 'http://localhost:5173', // or '*' to allow all (not recommended for production)
+    origin: '*', // or '*' to allow all (not recommended for production)
     methods: ['GET', 'POST', 'DELETE', 'PATCH'],
     credentials: true,
   }),
