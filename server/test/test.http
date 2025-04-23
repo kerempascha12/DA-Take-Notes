@@ -1,0 +1,36 @@
+POST http://localhost:3000/database/addPDF
+Content-Type: application/json
+
+{
+  "name": "KA.pdf"
+}
+###
+GET http://localhost:3000/database/pdf/WIRE-Organisation.pdf
+###
+DELETE http://localhost:3000/database/pdf/QM-Zusammenfassung.pdf
+###
+POST http://localhost:3000/database/PDFnotiz
+Content-Type: application/json
+
+{
+  "title": "Database Test",
+  "content": "It's Working!!!!!",
+  "userID": 1,
+  "pdfID": 39
+}
+###
+GET http://localhost:3000/database/PDFnotiz/39
+###
+DELETE http://localhost:3000/database/note/37
+###
+GET http://localhost:3000/database/PDFnotiz/49
+###
+GET http://localhost:3000/database/PDFnote/48
+###
+PATCH http://localhost:3000/database/note/48
+Content-Type: application/json
+
+{
+  "title": "Patch test title33",
+  "content": "Patch test content"
+}
