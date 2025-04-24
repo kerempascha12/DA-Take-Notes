@@ -9,7 +9,7 @@ import pgSession from 'connect-pg-simple'; // ⬅ falls du PostgreSQL-basierte S
 import { errorHandler, notFoundHandler } from './error/errorHandler.js';
 import authRoutes from './api/routes/authentication.js';
 import uploadsRouter from './api/routes/upload.js';
-import databaseRouter from './api/routes/dbPDF.js';
+import databaseRouter from './api/routes/db.js';
 
 dotenv.config();
 
@@ -22,37 +22,41 @@ const app = express();
 app.use(morgan('dev'));
 
 // CORS-Konfiguration
-app.use(cors({
-  origin: ['http://127.0.0.1:5173', 'http://localhost:5173'],
-  methods: ['GET', 'POST', 'DELETE', 'PATCH'],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: ['http://127.0.0.1:5173', 'http://localhost:5173'],
+    methods: ['GET', 'POST', 'DELETE', 'PATCH'],
+    credentials: true,
+  }),
+);
 
 // JSON-Verarbeitung
 app.use(express.json());
 
-// Statische Dateien (z. B. Bilder, PDF-Previews)
+// Statische Dateien (z.B. Bilder, PDF-Previews)
 app.use(express.static(path.join(dirname, 'public')));
 
 // === Session Setup ===
 const PgSession = pgSession(session);
 import { pool } from './db/index.js'; // deine PostgreSQL DB-Connection
 
-app.use(session({
-  store: new PgSession({
-    pool: pool, // PostgreSQL-Pool
-    tableName: 'session',
+app.use(
+  session({
+    store: new PgSession({
+      pool: pool, // PostgreSQL-Pool
+      tableName: 'session',
+    }),
+    name: SESSION_NAME,
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: parseInt(SESSION_LIFETIME) || 1000 * 60 * 60 * 2, // 2h
+      sameSite: 'lax',
+      secure: false, // auf true setzen mit HTTPS
+    },
   }),
-  name: SESSION_NAME,
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    maxAge: parseInt(SESSION_LIFETIME) || 1000 * 60 * 60 * 2, // 2h
-    sameSite: 'lax',
-    secure: false, // auf true setzen mit HTTPS
-  }
-}));
+);
 
 // === Routen ===
 app.use('/auth', authRoutes);
