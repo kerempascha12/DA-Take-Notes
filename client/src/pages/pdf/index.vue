@@ -20,7 +20,7 @@ onMounted(() => pdfStore.fetchPDFs());
 </script>
 
 <template>
-  <div class="q-mx-md column items-center">
+  <div class="q-mx-xl column items-center">
     <q-btn class="bg-accent text-white q-mt-lg" label="Upload a file" @click="ShowDialog"></q-btn>
     <UploadDialog v-model="showDialog"></UploadDialog>
     <h3 class="text-primary" v-if="allPDFs.length > 0">Meine PDFs</h3>

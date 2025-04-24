@@ -9,7 +9,7 @@ import pgSession from 'connect-pg-simple'; // ⬅ falls du PostgreSQL-basierte S
 import { errorHandler, notFoundHandler } from './error/errorHandler.js';
 import authRoutes from './api/routes/authentication.js';
 import uploadsRouter from './api/routes/upload.js';
-import databaseRouter from './api/routes/db.js';
+import databaseRouter from './api/routes/dbPDF.js';
 
 dotenv.config();
 
