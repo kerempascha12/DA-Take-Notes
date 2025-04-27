@@ -1,98 +1,264 @@
 <script setup>
-import { useAuthStore } from '@/stores/auth'; // Import the auth store
+import { useAuthStore } from '@/stores/auth';
 import { computed, ref, onMounted } from 'vue';
 import axios from 'axios';
 import { useQuasar } from 'quasar';
 
 const authStore = useAuthStore();
 const userDetails = computed(() => authStore.userDetails);
-const videoDetails = ref(null);
+const videoDetails = ref([]);
+const likedVideos = ref(new Set());
 const $q = useQuasar();
 const loading = ref(false);
+const filter = ref('');
 const dialog = ref(false);
-const noteTab = ref('Youtube'); // Default tab
-const ytLink = ref(''); // YouTube link input
-const backdropFilter = ref('blur(4px)'); // Backdrop blur effect
+const noteTab = ref('Youtube');
+const ytLink = ref('');
+const adding = ref(false);
 
+// WICHTIG: Basis-URL setzen
 axios.defaults.baseURL = 'http://localhost:3000';
 
+// Fehlerbehandlung
 const handleError = (error, defaultMessage = 'An error occurred.') => {
   const message = error.response?.data?.error || defaultMessage;
-  $q.notify({ color: 'negative', position: 'top', icon: 'warning', timeout: 3000, message });
+  $q.notify({ color: 'negative', message });
 };
-console.log(userDetails.value);
-const getVideoFromUser = async () => {
+
+// Videos vom Server holen
+const getVideosFromUser = async () => {
   try {
     loading.value = true;
     const { data } = await axios.get('/auth/user/video');
     videoDetails.value = data;
-    console.log(data);
   } catch (error) {
-    handleError(error, 'Failed to fetch video details.');
+    if (userDetails.value) handleError(error, 'Failed to fetch video details.');
   } finally {
     loading.value = false;
   }
 };
 
-const thumbnailUrl = computed(() =>
-  videoDetails.value?.video_id
-    ? `https://img.youtube.com/vi/${videoDetails.value.video_id}/maxresdefault.jpg`
-    : null,
-);
-
+// Dialog öffnen/schließen
 const openDialog = () => {
   dialog.value = true;
 };
-
 const closeDialog = () => {
   dialog.value = false;
-  ytLink.value = ''; // Reset input field
+  ytLink.value = '';
 };
 
+// Video ID aus YouTube Link extrahieren
+const extractVideoId = (url) => {
+  try {
+    const parsedUrl = new URL(url);
+
+    if (parsedUrl.hostname === 'youtu.be') {
+      return parsedUrl.pathname.slice(1);
+    }
+    if (parsedUrl.pathname === '/watch') {
+      return parsedUrl.searchParams.get('v');
+    }
+    const pathParts = parsedUrl.pathname.split('/');
+    if (pathParts.length >= 2 && (pathParts[1] === 'embed' || pathParts[1] === 'shorts')) {
+      return pathParts[2];
+    }
+
+    return null;
+  } catch (e) {
+    console.error('Ungültige URL:', e);
+    return null;
+  }
+};
+
+// Neues Video hinzufügen
+const addNewVideo = async () => {
+  if (!ytLink.value) {
+    $q.notify({ type: 'negative', message: 'Please insert a YouTube link!' });
+    return;
+  }
+
+  const videoId = extractVideoId(ytLink.value);
+
+  if (!videoId) {
+    $q.notify({ type: 'negative', message: 'Invalid YouTube link!' });
+    return;
+  }
+
+  try {
+    adding.value = true;
+
+    // Statt Google direkt → EIGENER Server
+    const { data } = await axios.get('/auth/user/youtube/video-info', {
+      params: { videoId },
+    });
+
+    if (!data.items.length) {
+      $q.notify({ type: 'negative', message: 'Video not found!' });
+      return;
+    }
+
+    const title = data.items[0].snippet.title;
+
+    // Speichern
+    await axios.post('/auth/user/video', { videoId, title });
+
+    $q.notify({ type: 'positive', message: 'Video successfully added!' });
+    closeDialog();
+    getVideosFromUser();
+  } catch (error) {
+    console.error('Error during addNewVideo:', error);
+    handleError(error, 'Failed to add new video.');
+  } finally {
+    adding.value = false;
+  }
+};
+
+// Beim Starten Videos laden
 onMounted(() => {
-  if (userDetails.value == !null) {
+  if (!userDetails.value) {
     console.warn('User details not found in store. Ensure they are set on login.');
   }
-  getVideoFromUser();
+  getVideosFromUser();
 });
+
+// Tabellen-Spalten
+const columns = [
+  {
+    name: 'video_id',
+    label: 'Video ID',
+    align: 'left',
+    field: (row) => row.video_id,
+  },
+  {
+    name: 'title',
+    label: 'Title',
+    align: 'left',
+    field: (row) => row.title,
+  },
+];
+
+// Herz liken
+const toggleLike = (videoId) => {
+  if (likedVideos.value.has(videoId)) {
+    likedVideos.value.delete(videoId);
+  } else {
+    likedVideos.value.add(videoId);
+  }
+};
+
+// Teilen
+const shareVideo = (videoId) => {
+  navigator.clipboard.writeText(`https://youtube.com/watch?v=${videoId}`);
+  $q.notify({ type: 'positive', message: 'Link copied to clipboard!' });
+};
+
+// Löschen (Dummy)
+const deleteVideo = async (videoId) => {
+  try {
+    await axios.delete(`/auth/user/video/${videoId}`);
+    $q.notify({ type: 'positive', message: 'Video deleted successfully!' });
+    getVideosFromUser(); // neu laden
+  } catch (error) {
+    console.error('Error deleting video:', error);
+    handleError(error, 'Failed to delete video.');
+  }
+};
 </script>
 
 <template>
-  <div v-if="!userDetails" class="row justify-center">
-    <q-img width="35%" src="/img/monkey.webp" alt="No video available" />
-  </div>
+  <div class="q-pa-lg flex flex-center">
+    <q-img v-if="!userDetails" width="35%" src="/img/monkey.webp" alt="No user available" />
 
-  <div v-else class="row q-ma-lg" style="width: 500px">
-    <q-page>
-      <q-card class="justify-center my-card" flat>
-        <div v-if="loading" class="q-pa-md">
-          <q-spinner color="primary" size="30px" />
-          <p>Loading video details...</p>
-        </div>
+    <div v-else>
+      <div v-if="loading" class="q-pa-md flex flex-center column items-center">
+        <q-spinner color="primary" size="30px" />
+        <p class="q-mt-md">Loading video details...</p>
+      </div>
 
-        <div v-else-if="videoDetails && videoDetails.title">
-          <q-img :src="thumbnailUrl" alt="Video Thumbnail" />
-          <q-card-actions class="justify-between">
-            <span class="text-weight-bolder">{{ videoDetails.title }}</span>
-            <div>
-              <q-btn flat round color="red" icon="favorite" />
-              <q-btn flat round color="primary" icon="share" />
-            </div>
-          </q-card-actions>
-        </div>
-      </q-card>
+      <q-table
+        v-else
+        grid
+        card-class="bg-grey-2 text-black"
+        :rows="videoDetails"
+        :columns="columns"
+        row-key="id"
+        :filter="filter"
+        style="width: 80vw"
+      >
+        <template v-slot:top-right>
+          <q-input
+            dense
+            debounce="300"
+            filled
+            v-model="filter"
+            placeholder="Search videos..."
+            class="q-ml-md bg-white"
+            style="border-radius: 5px;"
+          >
+            <template v-slot:append>
+              <q-icon name="search" />
+            </template>
+          </q-input>
+        </template>
 
+        <!-- Eigene Gestaltung für jede Karte -->
+        <template v-slot:item="props">
+          <q-card
+            class="my-beautiful-card q-ma-md"
+            style="width: 500px; border-radius: 12px; overflow: hidden"
+          >
+            <!-- Thumbnail -->
+            <q-img
+              :src="`https://img.youtube.com/vi/${props.row.video_id}/hqdefault.jpg`"
+              style="aspect-ratio: 16/9; object-fit: cover"
+              spinner-color="primary"
+              fit="cover"
+            />
+
+            <!-- Titel -->
+            <q-card-section class="q-py-sm q-px-md">
+              <div class="text-subtitle1 text-weight-bold">{{ props.row.title }}</div>
+            </q-card-section>
+
+            <q-card-actions align="right" class="q-gutter-sm q-px-md q-pb-md">
+              <q-btn
+                flat
+                round
+                dense
+                :icon="likedVideos.has(props.row.video_id) ? 'favorite' : 'favorite_border'"
+                color="red"
+                @click="toggleLike(props.row.video_id)"
+              />
+              <q-btn
+                flat
+                round
+                dense
+                icon="share"
+                color="primary"
+                @click="shareVideo(props.row.video_id)"
+              />
+              <q-btn
+                flat
+                round
+                dense
+                icon="delete"
+                color="negative"
+                @click="deleteVideo(props.row.video_id)"
+              />
+            </q-card-actions>
+          </q-card>
+        </template>
+      </q-table>
+
+      <!-- Plus-Button -->
       <q-page-sticky position="bottom-right" :offset="[50, 50]">
-        <!-- Trigger Dialog with Blur -->
-        <q-btn size="20px" round color="accent" icon="fa-solid fa-plus" @click="openDialog" />
+        <q-btn size="lg" round push color="accent" icon="fa-solid fa-plus" @click="openDialog" />
       </q-page-sticky>
-    </q-page>
 
-    <!-- Dialog with Blur Effect -->
-    <q-dialog v-model="dialog">
-      <div :style="{ backdropFilter: backdropFilter }">
-        <q-card>
-          <q-card-section class="row items-center q-pb-none text-h6">
+      <!-- Upload-Dialog -->
+      <q-dialog v-model="dialog">
+        <q-card style="backdrop-filter: blur(8px)">
+          <q-card-section class="q-pb-none">
             <q-tabs v-model="noteTab" class="full-width">
               <q-tab name="Youtube" label="Youtube" />
               <q-tab name="PowerPoint" label="PowerPoint" />
@@ -100,30 +266,46 @@ onMounted(() => {
             </q-tabs>
           </q-card-section>
 
-          <q-card-section align="center" v-if="noteTab === 'Youtube'">
-            <q-input
-              v-model="ytLink"
-              outlined
-              rounded
-              label="Insert a YouTube Link"
-              style="width: 80%"
-              color="negative"
-            />
-          </q-card-section>
+          <q-separator />
 
-          <q-card-section v-else-if="noteTab === 'PowerPoint'">
-            <p>PowerPoint upload section will go here.</p>
-          </q-card-section>
+          <q-card-section class="q-pt-md" align="center">
+            <template v-if="noteTab === 'Youtube'">
+              <q-input
+                v-model="ytLink"
+                outlined
+                rounded
+                label="Insert a YouTube Link"
+                style="width: 80%"
+                color="negative"
+              />
+            </template>
 
-          <q-card-section v-else-if="noteTab === 'PDF'">
-            <p>PDF upload section will go here.</p>
+            <template v-else-if="noteTab === 'PowerPoint'">
+              <p>PowerPoint upload section will go here.</p>
+            </template>
+
+            <template v-else-if="noteTab === 'PDF'">
+              <p>PDF upload section will go here.</p>
+            </template>
           </q-card-section>
 
           <q-card-actions align="center">
-            <q-btn flat label="Submit" class="bg-primary text-white" @click="closeDialog" />
+            <q-btn
+              flat
+              label="Submit"
+              color="primary"
+              class="bg-primary text-white"
+              @click="addNewVideo"
+            />
           </q-card-actions>
         </q-card>
-      </div>
-    </q-dialog>
+      </q-dialog>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.my-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+</style>
