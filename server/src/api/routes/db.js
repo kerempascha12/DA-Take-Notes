@@ -9,6 +9,7 @@ const router = express.Router();
 router.post('/addPDF', asyncHandler(pdfController.postPDF));
 router.get('/pdf/:name', asyncHandler(pdfController.getPDF));
 router.delete('/pdf/:name', asyncHandler(pdfController.deletePDF));
+router.get('/pdfID/:id', asyncHandler(pdfController.getPDFbyID));
 
 // PDF Notizen
 router.post('/PDFnotiz', asyncHandler(pdfController.postNote));
@@ -21,6 +22,7 @@ router.patch('/note/:noteid', asyncHandler(pdfController.patchNote));
 router.get('/pptDateien', asyncHandler(pptController.getPowerPoints));
 router.get('/pptDatei/:pptID', asyncHandler(pptController.getPowerPoint));
 router.delete('/pptDatei/:pptID', asyncHandler(pptController.delPowerPointFile));
+router.post('/pptDatei', asyncHandler(pptController.postPowerPoint));
 
 // PowerPoint Notizen
 router.get('/pptNotizen', asyncHandler(pptController.getNotes));

@@ -21,9 +21,19 @@ const delPowerPointFile = async (req, res) => {
   return res.status(200).send('deleted.');
 };
 
+const postPowerPoint = async (req, res) => {
+  const { src, width, height } = req.body;
+  if (width == null || height == null) {
+    const { rows } = await models.postPowerPoint(src, null, null);
+    return res.status(200).json(rows);
+  }
+  const { rows } = await models.postPowerPoint(src, width, height);
+  return res.status(200).json(rows);
+};
+
 // Notes
 
-const getNotes = () => async (req, res) => {
+const getNotes = async (req, res) => {
   const { rows, rowCount } = await models.getNotes();
   if (rowCount < 1) return res.status(400).send('Keine Notizen gefunden');
   return res.status(200).json(rows);
@@ -44,4 +54,12 @@ const insertPPTNote = async (req, res) => {
   return res.status(400).send('Die Notiz konnte nicht hinzugefügt werden.');
 };
 
-export { getPowerPoints, getPowerPoint, delPowerPointFile, getNotes, getNotesByPPT, insertPPTNote };
+export {
+  getPowerPoints,
+  getPowerPoint,
+  delPowerPointFile,
+  postPowerPoint,
+  getNotes,
+  getNotesByPPT,
+  insertPPTNote,
+};

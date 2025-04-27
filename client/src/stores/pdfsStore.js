@@ -5,6 +5,7 @@ export const usePdfStore = defineStore('pdf', () => {
     allPDFs: [],
     lastPDF: [],
     PDFNotizen: [],
+    selectedPDF: {},
   });
 
   const fetchPDFs = async () => {
@@ -13,22 +14,15 @@ export const usePdfStore = defineStore('pdf', () => {
     state.allPDFs = data;
   };
 
-  const selectPDF = async (pdfId) => {
+  const selectPDF = async (id) => {
     state.PDFNotizen = [];
-    // Fetch PDF by ID (adjust the API endpoint as needed)
-    const { data } = await axios.get(`http://localhost:3000/database/pdf/${pdfId}`);
-    state.lastPDF = data;
-    // Fetch notes for the PDF
-    const { data: notes } = await axios.get(
-      `http://localhost:3000/database/PDFnotiz/${data[0].id}`,
-    );
+    const { data } = await axios.get(`${baseURL}/database/pdfID/${id}`);
+    state.selectedPDF = data[0];
+    const { data: notes } = await axios.get(`${baseURL}/database/PDFnotiz/${id}`);
     state.PDFNotizen = notes;
   };
 
   const postPDF = async (formdata, config, tempPDF) => {
-    // const { data: datei } = await axios.post('http://localhost:3000/database/addPDF', tempPDF);
-    // await axios.post('http://localhost:3000/uploads', formdata, config);
-
     await axios.post(`${baseURL}/uploads`, formdata, config);
     const { data: datei } = await axios.post(`${baseURL}/database/addPDF`, tempPDF);
     console.log('Sending tempPDF to DB:', tempPDF);
@@ -36,9 +30,6 @@ export const usePdfStore = defineStore('pdf', () => {
   };
 
   const deletePDF = async (name) => {
-    // await axios.delete(`http://localhost:3000/uploads/${name}`);
-    // await axios.delete(`http://localhost:3000/database/pdf/${name}`);
-
     await axios.delete(`${baseURL}/uploads/${name}`);
     await axios.delete(`${baseURL}/database/pdf/${name}`);
     fetchPDFs();
@@ -65,7 +56,7 @@ export const usePdfStore = defineStore('pdf', () => {
 
   const delNote = async (noteid, pdfID) => {
     await axios.delete(`${baseURL}/database/note/${noteid}`);
-    getPDFnotizen(pdfID);
+    selectPDF(pdfID);
   };
 
   const patchNote = async (title, content, noteid, pdfID) => {
@@ -82,10 +73,10 @@ export const usePdfStore = defineStore('pdf', () => {
     postPDF,
     fetchPDFs,
     deletePDF,
-    selectPDF,
     getPDFnotizen,
     addNotiz,
     delNote,
     patchNote,
+    selectPDF,
   };
 });

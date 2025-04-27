@@ -2,6 +2,13 @@ import { query } from '../../db/index.js';
 
 // PowerPoint Dateien
 
+const postPowerPoint = (src, width, height) =>
+  query('INSERT INTO powerpoint_file(src, height, width) values ($1, $2, $3) RETURNING *;', [
+    src,
+    width,
+    height,
+  ]);
+
 const getPowerPoints = () => query('SELECT * FROM powerpoint_file;');
 
 const getPowerPoint = ({ pptID }) =>
@@ -38,7 +45,7 @@ const getNotesByPPT = ({ pptID }) =>
 FROM note n
 JOIN powerpointnote pn on pn.noteid = n.noteid
 JOIN powerpoint_file ppt on ppt.powerpoint_id = pn.powerpoint_id
-WHERE ppt_id = $1;`,
+WHERE ppt.powerpoint_id = $1;`,
     [pptID],
   );
 
@@ -53,4 +60,12 @@ FROM note n
 JOIN powerpointnote pn on pn.noteid = n.noteid
 JOIN powerpoint_file ppt on ppt.powerpoint_id = pn.powerpoint_id;`);
 
-export { getPowerPoints, getPowerPoint, delPowerPointFile, insertPPTNote, getNotesByPPT, getNotes };
+export {
+  getPowerPoints,
+  getPowerPoint,
+  delPowerPointFile,
+  postPowerPoint,
+  insertPPTNote,
+  getNotesByPPT,
+  getNotes,
+};

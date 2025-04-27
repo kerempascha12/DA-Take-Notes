@@ -6,6 +6,8 @@ const deletePDF = (name) => query('DELETE FROM pdf_file WHERE name = $1', [name]
 
 const getPDF = (name) => query('SELECT * FROM pdf_file WHERE name=$1;', [name]);
 
+const getPDFbyID = ({ id }) => query('SELECT * FROM pdf_file WHERE id=$1;', [id]);
+
 const postNote = (title, content, userID, pdfID) =>
   query(
     `WITH inserted_note AS (
@@ -40,4 +42,14 @@ const getNoteByID = (noteid) => query('SELECT * FROM note WHERE noteid = $1;', [
 const updateNote = (title, content, noteid) =>
   query('UPDATE note SET title = $1, content = $2 WHERE noteid = $3;', [title, content, noteid]);
 
-export { postPDF, getPDF, deletePDF, postNote, getNotesByPDF, delNote, getNoteByID, updateNote };
+export {
+  postPDF,
+  getPDF,
+  deletePDF,
+  postNote,
+  getPDFbyID,
+  getNotesByPDF,
+  delNote,
+  getNoteByID,
+  updateNote,
+};

@@ -9,6 +9,8 @@ Content-Type: application/json
 ###
 GET http://localhost:3000/database/pdf/WIRE-Organisation.pdf
 ###
+GET http://localhost:3000/database/pdfID/2
+###
 DELETE http://localhost:3000/database/pdf/QM-Zusammenfassung.pdf
 ###
 POST http://localhost:3000/database/PDFnotiz
@@ -45,6 +47,15 @@ GET http://localhost:3000/database/pptDateien
 GET http://localhost:3000/database/pptDatei/1
 ###
 DELETE http://localhost:3000/database/pptDatei/1
+###
+POST http://localhost:3000/database/pptDatei
+Content-Type: application/json
+
+{
+  "src": "http://dasdassdasdasd556.ppt",
+  "width": 1920,
+  "height": 1080
+}
 
 // PowerPoint Notizen
 ###

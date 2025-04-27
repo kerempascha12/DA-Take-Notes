@@ -11,19 +11,23 @@ const ShowDialog = () => {
 
 const { allPDFs } = toRefs(pdfStore.state);
 
-const selectPDF = (name) => {
-  pdfStore.selectPDF(name);
-  router.push(`/pdf/${pdfStore.state.lastPDF[0].id}`);
+const selectPDF = async (pdf) => {
+  const { data: tempDatei } = await axios.get(`http://localhost:3000/database/pdf/${pdf}`);
+  console.log(pdf);
+  let datei = tempDatei[0];
+  pdfStore.selectPDF(datei.id);
+  router.push(`/pdf/${datei.id}`);
 };
 
-onMounted(() => pdfStore.fetchPDFs());
+onMounted(() => {
+  pdfStore.fetchPDFs();
+  pdfStore.state.selectedPDF.value = {};
+});
 </script>
 
 <template>
   <div class="q-mx-md column items-center">
     <q-btn class="bg-accent text-white q-mt-lg" label="Upload a file" @click="ShowDialog"></q-btn>
-    <UploadDialog v-model="showDialog"></UploadDialog>
-    <h3 class="text-primary" v-if="allPDFs.length > 0">Meine PDFs</h3>
     <div class="q-pa-md row">
       <q-card
         class="my-card bg-accent q-ma-lg cursor-pointer"
@@ -39,11 +43,12 @@ onMounted(() => pdfStore.fetchPDFs());
         </q-card-section>
       </q-card>
       <!-- <iframe
-        v-for="pdf of pdfs"
-        :key="pdf"
-        :src="`http://localhost:4000/pdf/${pdf}`"
-        width="500px"
-        height="600px"-->
+    v-for="pdf of pdfs"
+    :key="pdf"
+    :src="`http://localhost:4000/pdf/${pdf}`"
+    width="500px"
+    height="600px"-->
     </div>
   </div>
+  <UploadDialog v-model="showDialog"></UploadDialog>
 </template>

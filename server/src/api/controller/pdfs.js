@@ -22,6 +22,12 @@ const deletePDF = async (req, res) => {
   return res.status(200).send('deleted');
 };
 
+const getPDFbyID = async (req, res) => {
+  const { rows, rowCount } = await models.getPDFbyID(req.params);
+  if (rowCount < 1) return res.status(400).send('Keine PDF Datei gefunden.');
+  return res.status(200).json(rows);
+};
+
 const postNote = async (req, res) => {
   const { title, content, userID, pdfID } = req.body;
   if (title && content && userID && pdfID) {
@@ -57,4 +63,14 @@ const patchNote = async (req, res) => {
   return res.status(200).send('Notiz bearbeitet');
 };
 
-export { postPDF, getPDF, deletePDF, postNote, getNotesByPDF, delNote, getNoteByID, patchNote };
+export {
+  postPDF,
+  getPDF,
+  deletePDF,
+  getPDFbyID,
+  postNote,
+  getNotesByPDF,
+  delNote,
+  getNoteByID,
+  patchNote,
+};

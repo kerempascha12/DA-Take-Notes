@@ -4,14 +4,12 @@ import { useRoute } from 'vue-router';
 const route = useRoute();
 const pdfStore = usePdfStore();
 const baseURL = 'http://localhost:3000';
-const pdfID = route.params.pdfID;
 
-const { lastPDF: myPDF } = toRefs(pdfStore.state);
+const { selectedPDF: myPDF } = toRefs(pdfStore.state);
 const { PDFNotizen } = toRefs(pdfStore.state);
 
-onMounted(async () => {
-  const pdfId = route.params.pdfId;
-  await pdfStore.selectPDF(pdfId);
+onMounted(() => {
+  pdfStore.selectPDF(route.params.pdfID);
 });
 
 // Hinzufügen einer Notiz
@@ -50,7 +48,14 @@ const toggleEditDialog = (noteid) => {
 
 <template>
   <div class="row">
-    <iframe :src="`http://localhost:3000/pdf/${myPDF[0]?.name}`" width="50%" height="1000px" />
+    <iframe
+      v-if="myPDF && myPDF.name"
+      :src="`http://localhost:3000/pdf/${myPDF.name}`"
+      width="50%"
+      height="1000px"
+    />
+    <div v-else class="text-left" style="width: 50%">Loading PDF...</div>
+
     <div class="column q-ml-lg q-mt-md" style="width: 45%">
       <!--Hier startet die Notiz-->
 
@@ -113,10 +118,10 @@ const toggleEditDialog = (noteid) => {
           label="Add address"
           v-close-popup
           @click="
-            pdfStore.addNotiz(title, content, myPDF[0].id);
+            pdfStore.addNotiz(title, content, route.params.pdfID);
             title = '';
             content = '';
-            pdfStore.selectPDF(myPDF[0].id);
+            pdfStore.selectPDF(route.params.pdfID);
           "
         />
       </q-card-actions>
@@ -141,13 +146,12 @@ const toggleEditDialog = (noteid) => {
         <q-btn
           flat
           label="Notiz bearbeiten"
-          @click="pdfStore.patchNote(tempTitle, tempContent, tempNoteID, pdfID)"
+          @click="pdfStore.patchNote(tempTitle, tempContent, tempNoteID, route.params.pdfID)"
           v-close-popup
         />
       </q-card-actions>
     </q-card>
   </q-dialog>
-  <h1>{{ tempTitle }} {{ tempContent }} {{ tempNoteID }}</h1>
 </template>
 
 <style></style>
