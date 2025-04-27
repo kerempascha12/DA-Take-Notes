@@ -80,3 +80,19 @@ export const usePdfStore = defineStore('pdf', () => {
     selectPDF,
   };
 });
+
+export const usePPTStore = defineStore('ppt', () => {
+  const state = reactive({
+    allePräsentationen: [],
+  });
+
+  const insertPPT = async (src, width, height) => {
+    await axios.post(`${baseURL}/database/pptDatei`, { src: src, width: width, height: height });
+    console.log('posted.');
+  };
+
+  return {
+    state,
+    insertPPT,
+  };
+});

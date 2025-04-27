@@ -75,6 +75,7 @@ declare global {
   const useId: typeof import('vue')['useId']
   const useLink: typeof import('vue-router')['useLink']
   const useModel: typeof import('vue')['useModel']
+  const usePPTStore: typeof import('./src/stores/pdfsStore.js')['usePPTStore']
   const usePdfStore: typeof import('./src/stores/pdfsStore.js')['usePdfStore']
   const useQuasar: typeof import('quasar')['useQuasar']
   const useRoute: typeof import('vue-router')['useRoute']

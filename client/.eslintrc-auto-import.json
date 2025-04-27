@@ -90,6 +90,7 @@
     "watchSyncEffect": true,
     "useCounterStore": true,
     "useAuthStore": true,
-    "usePdfStore": true
+    "usePdfStore": true,
+    "usePPTStore": true
   }
 }

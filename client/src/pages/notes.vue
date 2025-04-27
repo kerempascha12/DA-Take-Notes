@@ -222,6 +222,51 @@ const upload = async () => {
     console.error('Error uploading file:', error);
   }
 };
+
+// PowerPoint Upload
+
+const pptStore = usePPTStore();
+
+const powerPointLink = ref('');
+
+const tempSrc = ref('');
+const tempWidth = ref(0);
+const tempHeight = ref(0);
+
+function extractIframeAttributes(htmlString) {
+  // Accept the HTML string as parameter
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlString, 'text/html');
+  const iframe = doc.querySelector('iframe');
+  if (!iframe) {
+    return { src: null, width: null, height: null };
+  }
+  return {
+    src: iframe.getAttribute('src'),
+    width: iframe.getAttribute('width'),
+    height: iframe.getAttribute('height'),
+  };
+}
+
+const postPPT = () => {
+  // Pass powerPointLink.value (the actual string) instead of the ref object
+  const { src, width, height } = extractIframeAttributes(powerPointLink.value);
+
+  tempSrc.value = src ?? '';
+  tempWidth.value = width ? parseInt(width) : 0; // Changed null to 0 for consistency
+  tempHeight.value = height ? parseInt(height) : 0; // Changed null to 0 for consistency
+
+  // Only proceed if we have a valid src
+  if (tempSrc.value) {
+    pptStore.insertPPT(tempSrc.value, tempWidth.value, tempHeight.value);
+    tempSrc.value = '';
+    tempWidth.value = 0;
+    tempHeight.value = 0;
+    powerPointLink.value = '';
+  } else {
+    console.error('No valid iframe found in the input');
+  }
+};
 </script>
 
 <template>
@@ -340,7 +385,12 @@ const upload = async () => {
             </template>
 
             <template v-else-if="noteTab === 'PowerPoint'">
-              <p>PowerPoint upload section will go here.</p>
+              <div class="column items-center">
+                <q-input outlined v-model="powerPointLink" label="PDF-Bindelink" />
+                <div class="row justify-end">
+                  <q-btn class="bg-accent" flat label="Upload PowerPoint" @click="postPPT"></q-btn>
+                </div>
+              </div>
             </template>
 
             <template v-else-if="noteTab === 'PDF'">
