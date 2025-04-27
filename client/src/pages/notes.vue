@@ -4,6 +4,8 @@ import { computed, ref, onMounted } from 'vue';
 import axios from 'axios';
 import { useQuasar } from 'quasar';
 
+const router = useRouter();
+
 const authStore = useAuthStore();
 const userDetails = computed(() => authStore.userDetails);
 const videoDetails = ref([]);
@@ -163,6 +165,63 @@ const deleteVideo = async (videoId) => {
     handleError(error, 'Failed to delete video.');
   }
 };
+
+// Gavrilos Teil, Upload von PDF Dateien
+
+const pdfStore = usePdfStore();
+
+const dialogModel = defineModel();
+
+const emit = defineEmits(['uploaded']);
+
+const selectPDF = (event) => {
+  const maxSize = 20 * 1024 * 1024; // 5 MB in bytes
+  pdf = event.target.files[0];
+
+  if (pdf) {
+    if (pdf.size > maxSize) {
+      $q.notify({
+        type: 'negative',
+        message: 'Die Datei ist zu groß. Maximal erlaubt sind 20 MB.',
+        timeout: 3000,
+      });
+      pdf = null; // clear the file
+      return;
+    }
+
+    tempPDF.value.name = pdf.name;
+    const reader = new FileReader();
+    reader.readAsDataURL(pdf);
+    reader.onload = (event) => (previewPDF.value = event.target.result);
+  }
+};
+
+let pdf = null;
+const previewPDF = ref(null);
+const tempPDF = ref({
+  name: null,
+});
+
+const upload = async () => {
+  if (!pdf) return;
+
+  let formData = new FormData();
+  formData.append('pdfdatei', pdf);
+  const config = {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  };
+
+  try {
+    pdfStore.postPDF(formData, config, tempPDF.value);
+    previewPDF.value = null;
+    emit('uploaded');
+    router.push('/pdf');
+  } catch (error) {
+    console.error('Error uploading file:', error);
+  }
+};
 </script>
 
 <template>
@@ -193,7 +252,7 @@ const deleteVideo = async (videoId) => {
             v-model="filter"
             placeholder="Search videos..."
             class="q-ml-md bg-white"
-            style="border-radius: 5px;"
+            style="border-radius: 5px"
           >
             <template v-slot:append>
               <q-icon name="search" />
@@ -257,7 +316,7 @@ const deleteVideo = async (videoId) => {
 
       <!-- Upload-Dialog -->
       <q-dialog v-model="dialog">
-        <q-card style="backdrop-filter: blur(8px)">
+        <q-card style="backdrop-filter: blur(8px)" class="bg-primary text-white">
           <q-card-section class="q-pb-none">
             <q-tabs v-model="noteTab" class="full-width">
               <q-tab name="Youtube" label="Youtube" />
@@ -285,7 +344,18 @@ const deleteVideo = async (videoId) => {
             </template>
 
             <template v-else-if="noteTab === 'PDF'">
-              <p>PDF upload section will go here.</p>
+              <div>
+                <div class="column">
+                  <h3 class="text-success text-center mt-4">Lade ein PDF-File hoch</h3>
+                  <div class="row items-center">
+                    <input type="file" accept="application/pdf" @change="selectPDF" class="my-3" />
+                  </div>
+                </div>
+                <div class="justify-end row">
+                  <q-btn flat class="bg-accent q-mr-md" label="Cancel" v-close-popup />
+                  <q-btn @click="upload" class="bg-accent" flat label="Upload PDF" v-close-popup />
+                </div>
+              </div>
             </template>
           </q-card-section>
 
