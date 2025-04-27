@@ -1,33 +1,58 @@
-import dotenv from 'dotenv';
 import express from 'express';
 import morgan from 'morgan';
+import dotenv from 'dotenv';
+import session from 'express-session';
 import cors from 'cors';
 import path from 'path';
+import { errorHandler, notFoundHandler } from './error/errorHandler.js';
 
+import authRoutes from './api/routes/authentication.js';
 import uploadsRouter from './api/routes/upload.js';
 import databaseRouter from './api/routes/db.js';
 
+dotenv.config();
+const { SESSION_LIFETIME, SESSION_NAME, SESSION_SECRET } = process.env;
+
 const dirname = path.resolve();
 
-dotenv.config();
 const app = express();
 
+app.use(morgan('dev'));
+
+const corsConfig = {
+  origin: ['http://127.0.0.1:5173', 'http://localhost:5173'], // or '*' to allow all (not recommended for production)
+  methods: ['GET', 'POST', 'DELETE', 'PATCH'],
+  credentials: true,
+};
+
+app.use(cors(corsConfig));
+app.use(express.static(path.join(dirname, '/public')));
+
 app.use(
-  cors({
-    origin: ['http://127.0.0.1:5173', 'http://localhost:5173'], // or '*' to allow all (not recommended for production)
-    methods: ['GET', 'POST', 'DELETE', 'PATCH'],
-    credentials: true,
+  session({
+    secret: SESSION_SECRET,
+    name: SESSION_NAME,
+    saveUninitialized: false,
+    resave: false,
+    cookie: {
+      maxAge: SESSION_LIFETIME * 1000 * 60 * 60,
+      httpOnly: false,
+      sameSite: false,
+      secure: false,
+    },
   }),
 );
 
-app.use(morgan('tiny'));
-app.use(express.static(path.join(dirname, 'public')));
 app.use(express.json());
 
+app.use('/auth', authRoutes);
 app.use('/uploads', uploadsRouter);
 app.use('/database', databaseRouter);
 
-const PORT = process.env.PORT ?? 5555;
+app.use(notFoundHandler);
+app.use(errorHandler);
 
-app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => console.log(`server running on port ${PORT}`));
 console.log('Server started');
