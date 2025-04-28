@@ -9,6 +9,7 @@ import { errorHandler, notFoundHandler } from './error/errorHandler.js';
 import authRoutes from './api/routes/authentication.js';
 import uploadsRouter from './api/routes/upload.js';
 import databaseRouter from './api/routes/db.js';
+import groupRouter from './api/routes/groups.js';
 
 dotenv.config();
 const { SESSION_LIFETIME, SESSION_NAME, SESSION_SECRET } = process.env;
@@ -48,6 +49,7 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/uploads', uploadsRouter);
 app.use('/database', databaseRouter);
+app.use('/groups', groupRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
