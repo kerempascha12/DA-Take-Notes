@@ -64,6 +64,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  
   <div class="q-pb-xl q-mt-xl">
     <div class="row justify-around animate-on-scroll">
       <!-- YouTube-Video -->

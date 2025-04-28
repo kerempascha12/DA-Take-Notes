@@ -2,6 +2,7 @@ import express from 'express';
 import asyncHandler from 'express-async-handler';
 import * as pdfController from '../controller/pdfs.js';
 import * as pptController from '../controller/powerpoint.js';
+import * as ytController from '../controller/youtube.js';
 
 const router = express.Router();
 
@@ -28,5 +29,11 @@ router.post('/pptDatei', asyncHandler(pptController.postPowerPoint));
 router.get('/pptNotizen', asyncHandler(pptController.getNotes));
 router.get('/pptNotizen/:pptID', asyncHandler(pptController.getNotesByPPT));
 router.post('/pptNotiz', asyncHandler(pptController.insertPPTNote));
+
+// YouTube Video
+router.get('/video/:id', asyncHandler(ytController.getVideoByID));
+
+// YouTube Notizen
+router.get('/ytNotes/:vid', asyncHandler(ytController.getNotesByVideoID));
 
 export default router;

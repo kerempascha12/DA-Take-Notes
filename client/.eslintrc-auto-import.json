@@ -91,6 +91,7 @@
     "useCounterStore": true,
     "useAuthStore": true,
     "usePdfStore": true,
-    "usePPTStore": true
+    "usePPTStore": true,
+    "useYTStore": true
   }
 }

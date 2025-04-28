@@ -70,3 +70,9 @@ Content-Type: application/json
   "userID": 1,
   "pptID": 2
 }
+
+// YouTube
+###
+GET http://localhost:3000/database/video/27
+###
+GET http://localhost:3000/database/ytNotes/27

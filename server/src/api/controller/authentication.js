@@ -133,6 +133,7 @@ const addUserVideo = async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
+
 // === YouTube-Video-Info holen ===
 const getYoutubeVideoInfo = async (req, res) => {
   const { videoId } = req.query;

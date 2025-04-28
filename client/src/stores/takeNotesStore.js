@@ -96,3 +96,16 @@ export const usePPTStore = defineStore('ppt', () => {
     insertPPT,
   };
 });
+
+export const useYTStore = defineStore('yt', () => {
+  const state = reactive({
+    currentVideo: {},
+  });
+
+  const selectVideo = async (id) => {
+    const { data } = await axios.get(`${baseURL}/database/video/${id}`);
+    state.currentVideo = data[0];
+  };
+
+  return { state, selectVideo };
+});
