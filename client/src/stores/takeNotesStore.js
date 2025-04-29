@@ -100,12 +100,50 @@ export const usePPTStore = defineStore('ppt', () => {
 export const useYTStore = defineStore('yt', () => {
   const state = reactive({
     currentVideo: {},
+    videoNotizen: [],
   });
 
   const selectVideo = async (id) => {
+    state.videoNotizen = [];
     const { data } = await axios.get(`${baseURL}/database/video/${id}`);
     state.currentVideo = data[0];
+    const { data: notes } = await axios.get(`${baseURL}/database/ytNotes/${id}`);
+    state.videoNotizen = notes;
   };
 
-  return { state, selectVideo };
+  const getYouTubeNotizen = async (vid) => {
+    const { data } = await axios.get(`${baseURL}/database/ytNotes/${vid}`);
+    state.videoNotizen = data;
+  };
+
+  const postNote = async (title, content, videoID, time) => {
+    try {
+      await axios.post(`${baseURL}/database/ytNote`, {
+        title: title,
+        content: content,
+        userID: 1,
+        videoID: videoID,
+        time: time,
+      });
+      getYouTubeNotizen(videoID);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const delNote = async (nid, vid) => {
+    await axios.delete(`http://localhost:3000/database/ytNote/${nid}`);
+    getYouTubeNotizen(vid);
+  };
+
+  const patchNote = async (nid, title, content, videoID) => {
+    await axios.patch(`http://localhost:3000/database/ytNote/${nid}`, { title, content });
+    getYouTubeNotizen(videoID);
+  };
+
+  const getNote = async (nid) => {
+    
+  }
+
+  return { state, selectVideo, getYouTubeNotizen, postNote, delNote, patchNote };
 });

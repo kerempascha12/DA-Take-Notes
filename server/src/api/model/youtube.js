@@ -7,7 +7,8 @@ const getNotesByVideoID = (id) =>
     `SELECT n.noteid,
        n.title,
        n.content,
-       n.created_at
+       n.created_at,
+       yn.time
 FROM note n
 JOIN youtube_note yn on n.noteid = yn.noteid
 JOIN video v on v.id = yn.video_id

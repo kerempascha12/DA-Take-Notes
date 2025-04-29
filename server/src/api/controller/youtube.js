@@ -38,12 +38,10 @@ const delNote = async (req, res) => {
 };
 
 const patchNote = async (req, res) => {
-  const { rowCount } = await model.getNoteByID(req.params.nid);
-  if (rowCount < 1) return res.status(400).send(`Keine Notiz mit dem ID ${req.params.nid} gefunden`);
   const { title, content } = req.body;
   if (title && content) {
     await model.updateNote(title, content, req.params.nid);
-    return res.status(200).send(`Note ${req.params.nid} deleted`);
+    return res.status(200).send(`Notiz ${req.params.nid} bearbeitet.`);
   }
   return res.status(400).send('Die Notiz konnte nicht bearbeitet werden.');
 };

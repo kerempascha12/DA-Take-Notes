@@ -334,6 +334,7 @@ const postPPT = () => {
           >
             <!-- Thumbnail -->
             <q-img
+              @click="selectYouTube(props.row.id)"
               :src="`https://img.youtube.com/vi/${props.row.video_id}/hqdefault.jpg`"
               style="aspect-ratio: 16/9; object-fit: cover"
               spinner-color="primary"

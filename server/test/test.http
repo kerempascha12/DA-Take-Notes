@@ -81,15 +81,21 @@ POST http://localhost:3000/database/ytNote
 Content-Type: application/json
 
 {
-  "title": "Test Notiz Gavrilo Despot",
-  "content": "Test notiz content Gavrilo Despot",
+  "title": "Coole stelle im video",
+  "content": "Hier wurde einiges gemacht.",
   "userID": 1,
-  "videoID": 21,
-  "time": "00:00:00"
+  "videoID": 29,
+  "time": "00:15:00"
 }
 ###
-GET http://localhost:3000/database/ytNote/10
+GET http://localhost:3000/database/ytNote/9
 ###
 DELETE http://localhost:3000/database/ytNote/10
 ###
-PATCH 
+PATCH http://localhost:3000/database/ytNote/9
+Content-Type: application/json
+
+{
+  "title": "Testnotiz bearbeitet",
+  "content": "Erfolgreich bearbeitet hehe"
+}
