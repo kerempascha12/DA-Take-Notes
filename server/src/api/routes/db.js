@@ -35,5 +35,9 @@ router.get('/video/:id', asyncHandler(ytController.getVideoByID));
 
 // YouTube Notizen
 router.get('/ytNotes/:vid', asyncHandler(ytController.getNotesByVideoID));
+router.post('/ytNote', asyncHandler(ytController.postYTnote));
+router.get('/ytNote/:nid', asyncHandler(ytController.getNoteByID));
+router.delete('/ytNote/:nid', asyncHandler(ytController.delNote));
+router.patch('/ytNote/:nid', asyncHandler(ytController.patchNote));
 
 export default router;

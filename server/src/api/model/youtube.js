@@ -28,4 +28,23 @@ RETURNING *;`,
     [title, content, userID, videoID, time],
   );
 
-export { getVideoByVideoID, getNotesByVideoID, postNote };
+const getNoteByID = ({ nid }) =>
+  query(
+    `SELECT n.noteid,
+       n.title,
+       n.content,
+       n.created_at,
+       yn.time
+FROM note n
+JOIN youtube_note yn on n.noteid = yn.noteid
+JOIN video v on v.id = yn.video_id
+WHERE n.noteid = $1;`,
+    [nid],
+  );
+
+const delNote = ({ nid }) => query('DELETE FROM note WHERE noteid = $1;', [nid]);
+
+const updateNote = (title, content, noteid) =>
+  query('UPDATE note SET title = $1, content = $2 WHERE noteid = $3;', [title, content, noteid]);
+
+export { getVideoByVideoID, getNotesByVideoID, postNote, getNoteByID, delNote, updateNote };

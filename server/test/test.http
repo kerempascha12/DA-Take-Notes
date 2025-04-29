@@ -75,4 +75,21 @@ Content-Type: application/json
 ###
 GET http://localhost:3000/database/video/27
 ###
-GET http://localhost:3000/database/ytNotes/27
+GET http://localhost:3000/database/ytNotes/21
+###
+POST http://localhost:3000/database/ytNote
+Content-Type: application/json
+
+{
+  "title": "Test Notiz Gavrilo Despot",
+  "content": "Test notiz content Gavrilo Despot",
+  "userID": 1,
+  "videoID": 21,
+  "time": "00:00:00"
+}
+###
+GET http://localhost:3000/database/ytNote/10
+###
+DELETE http://localhost:3000/database/ytNote/10
+###
+PATCH 
