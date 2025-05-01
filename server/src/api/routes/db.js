@@ -24,11 +24,15 @@ router.get('/pptDateien', asyncHandler(pptController.getPowerPoints));
 router.get('/pptDatei/:pptID', asyncHandler(pptController.getPowerPoint));
 router.delete('/pptDatei/:pptID', asyncHandler(pptController.delPowerPointFile));
 router.post('/pptDatei', asyncHandler(pptController.postPowerPoint));
+router.patch('/pptDatei/:pptID', asyncHandler(pptController.renamePowerPoint));
 
 // PowerPoint Notizen
 router.get('/pptNotizen', asyncHandler(pptController.getNotes));
 router.get('/pptNotizen/:pptID', asyncHandler(pptController.getNotesByPPT));
+router.get('/pptNotiz/:nid', asyncHandler(pptController.getNoteByID));
+router.delete('/pptNotiz/:nid', asyncHandler(pptController.delNote));
 router.post('/pptNotiz', asyncHandler(pptController.insertPPTNote));
+router.patch('/pptNotiz/:nid', asyncHandler(pptController.patchNote));
 
 // YouTube Video
 router.get('/video/:id', asyncHandler(ytController.getVideoByID));

@@ -61,7 +61,7 @@ const upload = async () => {
     <q-dialog v-model="dialogModel" persistent>
       <q-card style="min-width: 350px">
         <q-card-section class="column">
-          <h3 class="text-success text-center mt-4">Lade ein PDF-File hoch</h3>
+          <h3 class="text-success text-center mt-4" >Lade eine PDF-Datei hoch</h3>
           <div class="row items-center">
             <input type="file" accept="application/pdf" @change="selectPDF" class="my-3" />
           </div>

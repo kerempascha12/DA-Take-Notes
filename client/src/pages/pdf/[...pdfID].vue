@@ -56,7 +56,7 @@ const toggleEditDialog = (noteid) => {
     />
     <div v-else class="text-left" style="width: 50%">Loading PDF...</div>
 
-    <div class="column q-ml-lg q-mt-md" style="width: 45%">
+    <div class="column q-ml-lg q-mt-md" style="width: 45%" v-if="PDFNotizen.length > 0">
       <!--Hier startet die Notiz-->
 
       <div
@@ -96,6 +96,10 @@ const toggleEditDialog = (noteid) => {
 
       <q-btn color="accent" icon="add" @click="showAddDialog = true"></q-btn>
     </div>
+    <div class="self-center column items-center" style="width: 45%;" v-else>
+    <h2 class="text-white text-h3" style="font-family: 'Shrikhand'">Keine Notizen vorhanden...</h2>
+    <q-btn class="bg-accent text-white" @click="showAddDialog = true" round icon="add"></q-btn>
+  </div>
   </div>
 
   <!-- Dialog zum Hinzufügen einer Notiz -->

@@ -2,20 +2,22 @@ import { query } from '../../db/index.js';
 
 // PowerPoint Dateien
 
-const postPowerPoint = (src, width, height) =>
-  query('INSERT INTO powerpoint_file(src, height, width) values ($1, $2, $3) RETURNING *;', [
-    src,
-    width,
-    height,
-  ]);
+const postPowerPoint = (src, width, height, name) =>
+  query(
+    'INSERT INTO powerpoint_file(src, height, width, name) values ($1, $2, $3, $4) RETURNING *;',
+    [src, width, height, name],
+  );
 
-const getPowerPoints = () => query('SELECT * FROM powerpoint_file;');
+const getPowerPoints = () => query('SELECT * FROM powerpoint_file ORDER BY name;');
 
 const getPowerPoint = ({ pptID }) =>
   query('SELECT * FROM powerpoint_file WHERE powerpoint_id = $1;', [pptID]);
 
 const delPowerPointFile = ({ pptID }) =>
   query('DELETE FROM powerpoint_file WHERE powerpoint_id = $1;', [pptID]);
+
+const renamePowerPoint = (pptName, pptID) =>
+  query('UPDATE powerpoint_file SET name = $1 WHERE powerpoint_id = $2;', [pptName, pptID]);
 
 // PowerPointNotes
 
@@ -34,6 +36,23 @@ const insertPPTNote = (title, content, userID, pptID) =>
     [title, content, userID, pptID],
   );
 
+const getNoteByID = ({ nid }) =>
+  query(
+    `SELECT n.title as title,
+       n.content as content,
+       n.noteid as noteid,
+       n.user_id as userid,
+       ppt.src as src,
+       ppt.powerpoint_id as pptID
+FROM note n
+JOIN powerpointnote pn on pn.noteid = n.noteid
+JOIN powerpoint_file ppt on ppt.powerpoint_id = pn.powerpoint_id
+WHERE n.noteid=$1;`,
+    [nid],
+  );
+
+const delPPTNote = ({ nid }) => query('DELETE FROM note WHERE noteid=$1;', [nid]);
+
 const getNotesByPPT = ({ pptID }) =>
   query(
     `SELECT n.title as title,
@@ -41,6 +60,7 @@ const getNotesByPPT = ({ pptID }) =>
        n.noteid as noteid,
        n.user_id as userid,
        ppt.src as src,
+       ppt.name as name,
        ppt.powerpoint_id as pptID
 FROM note n
 JOIN powerpointnote pn on pn.noteid = n.noteid
@@ -60,12 +80,19 @@ FROM note n
 JOIN powerpointnote pn on pn.noteid = n.noteid
 JOIN powerpoint_file ppt on ppt.powerpoint_id = pn.powerpoint_id;`);
 
+const updateNote = (title, content, noteid) =>
+  query('UPDATE note SET title = $1, content = $2 WHERE noteid = $3;', [title, content, noteid]);
+
 export {
   getPowerPoints,
   getPowerPoint,
   delPowerPointFile,
   postPowerPoint,
+  renamePowerPoint,
   insertPPTNote,
+  delPPTNote,
+  getNoteByID,
   getNotesByPPT,
   getNotes,
+  updateNote,
 };

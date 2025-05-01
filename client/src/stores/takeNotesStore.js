@@ -83,17 +83,82 @@ export const usePdfStore = defineStore('pdf', () => {
 
 export const usePPTStore = defineStore('ppt', () => {
   const state = reactive({
-    allePräsentationen: [],
+    allePPTs: [],
+    pptNotizen: [],
+    selectedPPT: {},
   });
 
-  const insertPPT = async (src, width, height) => {
-    await axios.post(`${baseURL}/database/pptDatei`, { src: src, width: width, height: height });
-    console.log('posted.');
+  const getPPTNotes = async (pptID) => {
+    const { data: notes } = await axios.get(`${baseURL}/database/pptNotizen/${pptID}`);
+    state.pptNotizen = notes;
+  };
+
+  const selectPPT = async (id) => {
+    state.pptNotizen = [];
+    const { data } = await axios.get(`${baseURL}/database/pptDatei/${id}`);
+    state.selectedPPT = data[0];
+    const { data: notes } = await axios.get(`${baseURL}/database/pptNotizen/${id}`);
+    state.pptNotizen = notes;
+  };
+
+  const getPPTs = async () => {
+    const { data } = await axios.get(`${baseURL}/database/pptDateien`);
+    state.allePPTs = data;
+  };
+
+  const insertPPT = async (src, width, height, name) => {
+    await axios.post(`${baseURL}/database/pptDatei`, {
+      src: src,
+      width: width,
+      height: height,
+      name: name,
+    });
+    console.log('PowerPoint-Datei hinzugefügt');
+    getPPTs();
+  };
+
+  const delPPT = async (pptID) => {
+    await axios.delete(`${baseURL}/database/pptDatei/${pptID}`);
+    console.log('PowerPoint-Datei gelöscht!');
+    getPPTs();
+  };
+
+  const renamePPT = async (pptID, name) => {
+    await axios.patch(`${baseURL}/database/pptDatei/${pptID}`, { name: name });
+    getPPTs();
+    selectPPT(pptID);
+  };
+
+  const postPPTNote = async (title, content, pptID) => {
+    await axios.post(`${baseURL}/database/pptNotiz`, {
+      title: title,
+      content: content,
+      userID: 1,
+      pptID: pptID,
+    });
+    getPPTNotes(pptID);
+  };
+
+  const delNote = async (noteid, pptID) => {
+    await axios.delete(`${baseURL}/database/pptNotiz/${noteid}`);
+    getPPTNotes(pptID);
+  };
+  const patchNote = async (nid, title, content, pptID) => {
+    await axios.patch(`${baseURL}/database/pptNotiz/${nid}`, { title: title, content: content });
+    getPPTNotes(pptID);
   };
 
   return {
     state,
     insertPPT,
+    delPPT,
+    getPPTs,
+    selectPPT,
+    getPPTNotes,
+    renamePPT,
+    postPPTNote,
+    delNote,
+    patchNote,
   };
 });
 
@@ -141,9 +206,7 @@ export const useYTStore = defineStore('yt', () => {
     getYouTubeNotizen(videoID);
   };
 
-  const getNote = async (nid) => {
-    
-  }
+  const getNote = async (nid) => {};
 
   return { state, selectVideo, getYouTubeNotizen, postNote, delNote, patchNote };
 });

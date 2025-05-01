@@ -1,29 +1,24 @@
 <script setup>
-const ytStore = useYTStore();
-const route = useRoute();
 const baseURL = 'http://localhost:3000';
-const { currentVideo: myVid } = toRefs(ytStore.state);
-const { videoNotizen: notes } = toRefs(ytStore.state);
-const $q = useQuasar();
+const route = useRoute();
+const pptStore = usePPTStore();
+const { selectedPPT: myPPT } = toRefs(pptStore.state);
+const { pptNotizen: notes } = toRefs(pptStore.state);
 
-// Notiz Posten
-
+//Hinzufügen
 const showAddDialog = ref(false);
+const title = ref('');
+const content = ref('');
 
-const toggleAddDialog = () => {
-  showAddDialog.value = !showAddDialog.value;
+const toggleAddDialog = () => (showAddDialog.value = !showAddDialog.value);
+
+const addNotiz = () => {
+  pptStore.postPPTNote(title.value, content.value, route.params.pptID);
+  title.value = '';
+  content.value = '';
 };
 
-const addTitle = ref('');
-const addContent = ref('');
-const addTime = ref('00:00:00');
-
-const postNote = async () => {
-  await ytStore.postNote(addTitle.value, addContent.value, myVid.value.id, '00:00:00');
-  addTitle.value = '';
-  addContent.value = '';
-};
-// Patch Note
+// Bearbeiten
 
 const showEditDialog = ref(false);
 
@@ -37,32 +32,20 @@ const editTitle = ref('');
 const editContent = ref('');
 
 const selectNote = async (noteid) => {
-  const { data } = await axios.get(`${baseURL}/database/ytNote/${noteid}`);
+  const { data } = await axios.get(`${baseURL}/database/pptNotiz/${noteid}`);
   if (!data) return;
   editTitle.value = data[0].title;
   editContent.value = data[0].content;
   editNid.value = data[0].noteid;
 };
 
-//Misc
-
-const shareVideo = (videoId) => {
-  navigator.clipboard.writeText(`https://youtube.com/watch?v=${videoId}`);
-  $q.notify({ type: 'positive', message: 'Link copied to clipboard!' });
-};
-
-
-
-const lastSavedTime = ref(null);
-
-//Andere sachen
 onMounted(() => {
-  ytStore.selectVideo(route.params.videoID);
+  pptStore.selectPPT(route.params.pptID);
 });
 </script>
 
 <template>
-  <div class="q-pb-xl q-mt-xl" v-if="myVid">
+  <div class="q-pb-xl q-mt-xl" v-if="myPPT">
     <div class="row justify-around">
       <div class="column">
         <iframe
@@ -70,20 +53,9 @@ onMounted(() => {
           class="shadow-8"
           width="768"
           height="432"
-          :src="`https://www.youtube.com/embed/${myVid.video_id}`"
+          :src="myPPT.src"
           frameborder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowfullscreen
         ></iframe>
-        <q-btn
-          :href="`https://www.youtube.com/watch?v=${myVid.video_id}`"
-          type="a"
-          target="_blank"
-          label="Auf YouTube Schauen"
-          class="bg-red text-white q-mb-md q-mt-md"
-        />
-        <q-btn color="orange" @click="shareVideo(myVid.video_id)" label="Link Kopieren"> </q-btn>
-        <p v-if="lastSavedTime !== null">Last saved at: {{ formatTime(lastSavedTime) }}</p>
       </div>
 
       <div class="column justify-center items-center">
@@ -91,7 +63,7 @@ onMounted(() => {
           class="column items-center text-h6 text-center cursor-pointer text-white"
           style="text-decoration: none; width: 70%"
         >
-          <p>{{ myVid.title }}</p>
+          <p class="text-h2">{{ myPPT.name }}</p>
         </div>
 
         <q-separator class="bold bg-gray-4 self-center" style="width: 30vw; margin: 0 auto" />
@@ -114,17 +86,17 @@ onMounted(() => {
               <div class="row justify-end">
                 <q-btn
                   icon="edit"
-                  @click="toggleEditDialog(note.noteid)"
                   flat
                   color="black"
+                  @click="toggleEditDialog(note.noteid)"
                   class="q-mb-lg q-mr-lg"
                 ></q-btn>
                 <q-btn
                   icon="delete"
-                  @click="ytStore.delNote(note.noteid, myVid.id)"
                   flat
                   color="black"
                   class="q-mb-lg q-mr-lg"
+                  @click="pptStore.delNote(note.noteid, route.params.pptID)"
                 ></q-btn>
               </div>
             </div>
@@ -132,12 +104,11 @@ onMounted(() => {
         </div>
         <div class="self-center column items-center" v-else>
           <h2 class="text-white" style="font-family: 'Shrikhand'">Keine Notizen vorhanden...</h2>
-          <q-btn class="bg-accent text-white" @click="toggleAddDialog" round icon="add"></q-btn>
+          <q-btn class="bg-accent text-white" round icon="add" @click="toggleAddDialog"></q-btn>
         </div>
       </div>
     </div>
   </div>
-
   <q-btn
     v-if="notes.length >= 1"
     class="fixed-bottom-button bg-accent"
@@ -146,8 +117,6 @@ onMounted(() => {
     icon="add"
   ></q-btn>
 
-  <!-- Add Dialog -->
-
   <q-dialog v-model="showAddDialog" persistent>
     <q-card style="min-width: 350px">
       <q-card-section>
@@ -155,18 +124,16 @@ onMounted(() => {
       </q-card-section>
 
       <q-card-section class="q-pt-none">
-        <q-input dense v-model="addTitle" autofocus label="Titel..." />
-        <q-input dense v-model="addContent" autofocus label="Inhalt..." />
+        <q-input dense v-model="title" autofocus label="Titel..." />
+        <q-input dense v-model="content" autofocus label="Inhalt..." />
       </q-card-section>
 
       <q-card-actions align="right" class="text-primary">
         <q-btn flat label="Cancel" v-close-popup />
-        <q-btn flat @click="postNote" label="Notiz hinzufügen" v-close-popup />
+        <q-btn flat label="Notiz hinzufügen" v-close-popup @click="addNotiz()" />
       </q-card-actions>
     </q-card>
   </q-dialog>
-
-  <!-- Edit Dialog -->
 
   <q-dialog v-model="showEditDialog" persistent>
     <q-card style="min-width: 350px">
@@ -181,44 +148,13 @@ onMounted(() => {
 
       <q-card-actions align="right" class="text-primary">
         <q-btn flat label="Cancel" v-close-popup />
-        <q-btn
-          flat
-          @click="ytStore.patchNote(editNid, editTitle, editContent, myVid.id)"
-          label="Notiz bearbeiten"
-          v-close-popup
-        />
+        <q-btn flat label="Notiz bearbeiten" v-close-popup @click="pptStore.patchNote(editNid, editTitle, editContent, route.params.pptID)" />
       </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
 
-<style scoped>
-/* Animation definieren */
-@keyframes slideIn {
-  from {
-    transform: translateY(100px); /* Startpunkt unterhalb */
-    opacity: 0; /* Unsichtbar */
-  }
-  to {
-    transform: translateY(0); /* Endposition */
-    opacity: 1; /* Sichtbar */
-  }
-}
-
-/* Initialer Zustand */
-.animate-on-scroll {
-  opacity: 0; /* Versteckt */
-  transform: translateY(100px); /* Position unterhalb */
-  transition: transform 0.3s ease, opacity 0.3s ease; /* Sanfter Übergang */
-}
-
-/* Zustand nach der Animation */
-.animate-on-scroll.slide-in {
-  opacity: 1;
-  transform: translateY(0); /* Zielposition */
-  animation: slideIn 0.5s ease forwards; /* Animation anwenden */
-}
-
+<style>
 .fixed-bottom-button {
   position: fixed;
   bottom: 20px;

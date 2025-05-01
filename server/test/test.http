@@ -44,7 +44,7 @@ Content-Type: application/json
 ###
 GET http://localhost:3000/database/pptDateien
 ###
-GET http://localhost:3000/database/pptDatei/1
+GET http://localhost:3000/database/pptDatei/4
 ###
 DELETE http://localhost:3000/database/pptDatei/1
 ###
@@ -55,6 +55,14 @@ Content-Type: application/json
   "src": "http://dasdassdasdasd556.ppt",
   "width": 1920,
   "height": 1080
+}
+
+###
+PATCH http://localhost:3000/database/pptDatei/4
+Content-Type: application/json
+
+{
+  "name": "Testdatei"
 }
 
 // PowerPoint Notizen
@@ -68,7 +76,19 @@ Content-Type: application/json
   "title": "Die Zweite Testnotiz für PowerPoint.",
   "content": "Das ist ein Inhalt von einer PowerPoint-Notiz",
   "userID": 1,
-  "pptID": 2
+  "pptID": 1
+}
+###
+GET http://localhost:3000/database/pptNotiz/26
+###
+DELETE http://localhost:3000/database/pptNotiz/22
+###
+PATCH http://localhost:3000/database/pptNotiz/26
+Content-Type: application/json
+
+{
+  "title": "Test update notiz 4",
+  "content": "truly"
 }
 
 // YouTube
