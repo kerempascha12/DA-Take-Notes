@@ -39,6 +39,17 @@ const selectNote = async (noteid) => {
   editNid.value = data[0].noteid;
 };
 
+function convertIsoToReadable(dateStr) {
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${day}.${month}.${year} ${hours}:${minutes}`;
+}
+
 onMounted(() => {
   pptStore.selectPPT(route.params.pptID);
 });
@@ -100,6 +111,11 @@ onMounted(() => {
                 ></q-btn>
               </div>
             </div>
+            <div class="row justify-end">
+              <p class="text-body1 text-white q-mr-md">
+                {{ convertIsoToReadable(note.created_at) }}
+              </p>
+            </div>
           </div>
         </div>
         <div class="self-center column items-center" v-else>
@@ -148,7 +164,12 @@ onMounted(() => {
 
       <q-card-actions align="right" class="text-primary">
         <q-btn flat label="Cancel" v-close-popup />
-        <q-btn flat label="Notiz bearbeiten" v-close-popup @click="pptStore.patchNote(editNid, editTitle, editContent, route.params.pptID)" />
+        <q-btn
+          flat
+          label="Notiz bearbeiten"
+          v-close-popup
+          @click="pptStore.patchNote(editNid, editTitle, editContent, route.params.pptID)"
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>

@@ -1,6 +1,4 @@
 <script setup>
-import { onMounted } from 'vue';
-import { useRoute } from 'vue-router';
 const route = useRoute();
 const pdfStore = usePdfStore();
 const baseURL = 'http://localhost:3000';
@@ -44,6 +42,17 @@ const toggleEditDialog = (noteid) => {
   showEditDialog.value = !showEditDialog.value;
   selectNote(noteid);
 };
+
+function convertIsoToReadable(dateStr) {
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${day}.${month}.${year} ${hours}:${minutes}`;
+}
 </script>
 
 <template>
@@ -71,7 +80,10 @@ const toggleEditDialog = (noteid) => {
             {{ notiz.content }}
           </p>
         </div>
-        <div class="row justify-end">
+        <div class="row justify-end items-center">
+          <p class="text-body1 text-black q-mr-md">
+            {{ convertIsoToReadable(notiz.created_at) }}
+          </p>
           <q-btn
             flat
             round
@@ -79,8 +91,7 @@ const toggleEditDialog = (noteid) => {
             @click="toggleEditDialog(notiz.noteid)"
             class="q-mb-lg q-mr-lg"
             color="dark"
-          >
-          </q-btn>
+          />
           <q-btn
             flat
             round
@@ -88,18 +99,28 @@ const toggleEditDialog = (noteid) => {
             @click="deleteNote(notiz.noteid)"
             class="q-mb-lg q-mr-lg"
             color="dark"
-          ></q-btn>
+          />
         </div>
       </div>
+      <p>{{ selectedText }}</p>
 
       <!--Hier endet die Notiz-->
 
-      <q-btn color="accent" icon="add" @click="showAddDialog = true"></q-btn>
+      <q-btn
+        color="accent"
+        icon="add"
+        @click="
+          showAddDialog = true;
+          saveSelection();
+        "
+      ></q-btn>
     </div>
-    <div class="self-center column items-center" style="width: 45%;" v-else>
-    <h2 class="text-white text-h3" style="font-family: 'Shrikhand'">Keine Notizen vorhanden...</h2>
-    <q-btn class="bg-accent text-white" @click="showAddDialog = true" round icon="add"></q-btn>
-  </div>
+    <div class="self-center column items-center" style="width: 45%" v-else>
+      <h2 class="text-white text-h3" style="font-family: 'Shrikhand'">
+        Keine Notizen vorhanden...
+      </h2>
+      <q-btn class="bg-accent text-white" @click="showAddDialog = true" round icon="add"></q-btn>
+    </div>
   </div>
 
   <!-- Dialog zum Hinzufügen einer Notiz -->

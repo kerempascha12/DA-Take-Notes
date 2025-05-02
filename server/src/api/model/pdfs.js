@@ -25,6 +25,7 @@ const getNotesByPDF = (id) =>
   query(
     `SELECT n.title as title,
        n.content as content,
+       n.created_at,
        pdf.id as pdfID,
        pdf.name as pdfName,
        n.noteid as noteID

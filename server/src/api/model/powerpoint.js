@@ -42,6 +42,7 @@ const getNoteByID = ({ nid }) =>
        n.content as content,
        n.noteid as noteid,
        n.user_id as userid,
+       n.created_at,
        ppt.src as src,
        ppt.powerpoint_id as pptID
 FROM note n
@@ -60,12 +61,14 @@ const getNotesByPPT = ({ pptID }) =>
        n.noteid as noteid,
        n.user_id as userid,
        ppt.src as src,
+       n.created_at,
        ppt.name as name,
        ppt.powerpoint_id as pptID
 FROM note n
 JOIN powerpointnote pn on pn.noteid = n.noteid
 JOIN powerpoint_file ppt on ppt.powerpoint_id = pn.powerpoint_id
-WHERE ppt.powerpoint_id = $1;`,
+WHERE ppt.powerpoint_id = $1
+ORDER BY n.created_at;`,
     [pptID],
   );
 

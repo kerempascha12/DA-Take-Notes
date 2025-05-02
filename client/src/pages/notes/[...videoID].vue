@@ -102,6 +102,9 @@ const showAddDialog = ref(false);
 const toggleAddDialog = () => {
   showAddDialog.value = !showAddDialog.value;
   getCurrentTimestamp();
+  if (showAddDialog.value && player && typeof player.pauseVideo === 'function') {
+    player.pauseVideo();
+  }
 };
 
 const addTitle = ref('');
@@ -120,6 +123,11 @@ const showEditDialog = ref(false);
 const toggleEditDialog = (noteid) => {
   showEditDialog.value = !showEditDialog.value;
   selectNote(noteid);
+
+  // Only pause when opening dialog
+  if (showEditDialog.value && player && typeof player.pauseVideo === 'function') {
+    player.pauseVideo();
+  }
 };
 
 const editNid = ref(0);
@@ -138,7 +146,7 @@ const selectNote = async (noteid) => {
 
 const shareVideo = (videoId) => {
   navigator.clipboard.writeText(`https://youtube.com/watch?v=${videoId}`);
-  $q.notify({ type: 'positive', message: 'Link copied to clipboard!' });
+  $q.notify({ type: 'positive', message: 'Link kopiert!' });
 };
 
 function convertIsoToReadable(dateStr) {
@@ -149,7 +157,7 @@ function convertIsoToReadable(dateStr) {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
 
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
+  return `${day}.${month}.${year} ${hours}:${minutes}`;
 }
 
 // --- YouTube Player API Logic ---
@@ -340,8 +348,8 @@ onMounted(() => {
       </q-card-section>
 
       <q-card-actions align="right" class="text-primary">
-        <q-btn flat label="Cancel" v-close-popup />
-        <q-btn flat @click="postNote" label="Notiz hinzufügen" v-close-popup />
+        <q-btn flat label="Cancel" v-close-popup @click="player.playVideo()"/>
+        <q-btn flat @click="postNote(); player.playVideo()" label="Notiz hinzufügen" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -360,10 +368,10 @@ onMounted(() => {
       </q-card-section>
 
       <q-card-actions align="right" class="text-primary">
-        <q-btn flat label="Cancel" v-close-popup />
+        <q-btn flat label="Cancel" v-close-popup @click="player.playVideo()" />
         <q-btn
           flat
-          @click="ytStore.patchNote(editNid, editTitle, editContent, myVid.id)"
+          @click="ytStore.patchNote(editNid, editTitle, editContent, myVid.id); player.playVideo();"
           label="Notiz bearbeiten"
           v-close-popup
         />
