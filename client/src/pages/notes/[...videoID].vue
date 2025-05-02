@@ -1,3 +1,6 @@
+<!--BACKUP NICHT LÖSCHEN-->
+<!--
+
 <script setup>
 const ytStore = useYTStore();
 const route = useRoute();
@@ -51,7 +54,18 @@ const shareVideo = (videoId) => {
   $q.notify({ type: 'positive', message: 'Link copied to clipboard!' });
 };
 
+function convertIsoToReadable(dateStr) {
+  const date = new Date(dateStr);
+  // Format as YYYY-MM-DD HH:mm:ss
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
 
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+}
 
 const lastSavedTime = ref(null);
 
@@ -60,30 +74,184 @@ onMounted(() => {
   ytStore.selectVideo(route.params.videoID);
 });
 </script>
+-->
+
+<script setup>
+const ytStore = useYTStore();
+const route = useRoute();
+const baseURL = 'http://localhost:3000';
+const { currentVideo: myVid } = toRefs(ytStore.state);
+const { videoNotizen: notes } = toRefs(ytStore.state);
+const $q = useQuasar();
+
+watch(
+  () => myVid.value.video_id,
+  (newVideoId) => {
+    if (player && typeof player.loadVideoById === 'function') {
+      player.loadVideoById(newVideoId);
+    } else {
+      initYouTubePlayer(); // fallback: first init
+    }
+  },
+);
+
+// Notiz Posten
+
+const showAddDialog = ref(false);
+
+const toggleAddDialog = () => {
+  showAddDialog.value = !showAddDialog.value;
+  getCurrentTimestamp();
+};
+
+const addTitle = ref('');
+const addContent = ref('');
+
+const postNote = async () => {
+  await ytStore.postNote(addTitle.value, addContent.value, myVid.value.id, lastSavedTime.value);
+  addTitle.value = '';
+  addContent.value = '';
+};
+
+// Patch Note
+
+const showEditDialog = ref(false);
+
+const toggleEditDialog = (noteid) => {
+  showEditDialog.value = !showEditDialog.value;
+  selectNote(noteid);
+};
+
+const editNid = ref(0);
+const editTitle = ref('');
+const editContent = ref('');
+
+const selectNote = async (noteid) => {
+  const { data } = await axios.get(`${baseURL}/database/ytNote/${noteid}`);
+  if (!data) return;
+  editTitle.value = data[0].title;
+  editContent.value = data[0].content;
+  editNid.value = data[0].noteid;
+};
+
+// Misc
+
+const shareVideo = (videoId) => {
+  navigator.clipboard.writeText(`https://youtube.com/watch?v=${videoId}`);
+  $q.notify({ type: 'positive', message: 'Link copied to clipboard!' });
+};
+
+function convertIsoToReadable(dateStr) {
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+}
+
+// --- YouTube Player API Logic ---
+
+const lastSavedTime = ref(null);
+let player = null;
+
+const loadYouTubeAPI = () => {
+  return new Promise((resolve) => {
+    if (window.YT && window.YT.Player) {
+      resolve();
+    } else {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+      window.onYouTubeIframeAPIReady = () => {
+        resolve();
+      };
+    }
+  });
+};
+
+const initYouTubePlayer = async () => {
+  await loadYouTubeAPI();
+
+  if (player && typeof player.destroy === 'function') {
+    player.destroy();
+  }
+
+  player = new window.YT.Player('player', {
+    height: '432',
+    width: '768',
+    videoId: myVid.value.video_id,
+    playerVars: {
+      modestbranding: 1,
+      rel: 0,
+    },
+  });
+};
+
+const formatSecondsToHMS = (seconds) => {
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  return [hrs, mins, secs].map((v) => String(v).padStart(2, '0')).join(':');
+};
+
+const getCurrentTimestamp = () => {
+  if (player && typeof player.getCurrentTime === 'function') {
+    const seconds = player.getCurrentTime();
+    lastSavedTime.value = formatSecondsToHMS(seconds);
+  }
+};
+// Zu einer bestimmten stelle skippen
+const seekTo = (timeStr) => {
+  const parts = timeStr.split(':').map(Number);
+  let seconds = 0;
+
+  if (parts.length === 3) {
+    // HH:MM:SS
+    seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+  } else if (parts.length === 2) {
+    // MM:SS
+    seconds = parts[0] * 60 + parts[1];
+  } else if (parts.length === 1) {
+    seconds = parts[0];
+  }
+
+  if (player && typeof player.seekTo === 'function') {
+    player.seekTo(seconds, true);
+    $q.notify({ type: 'information', message: `Gesprungen zu ${timeStr}`, timeout: 2000 });
+  }
+};
+
+// Andere sachen
+onMounted(() => {
+  ytStore.selectVideo(route.params.videoID);
+  initYouTubePlayer();
+});
+</script>
 
 <template>
   <div class="q-pb-xl q-mt-xl" v-if="myVid">
     <div class="row justify-around">
       <div class="column">
-        <iframe
-          style="border-radius: 10px"
-          class="shadow-8"
-          width="768"
-          height="432"
-          :src="`https://www.youtube.com/embed/${myVid.video_id}`"
-          frameborder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowfullscreen
-        ></iframe>
-        <q-btn
-          :href="`https://www.youtube.com/watch?v=${myVid.video_id}`"
-          type="a"
-          target="_blank"
-          label="Auf YouTube Schauen"
-          class="bg-red text-white q-mb-md q-mt-md"
-        />
-        <q-btn color="orange" @click="shareVideo(myVid.video_id)" label="Link Kopieren"> </q-btn>
-        <p v-if="lastSavedTime !== null">Last saved at: {{ formatTime(lastSavedTime) }}</p>
+        <div class="column">
+          <div
+            id="player"
+            class="shadow-8"
+            style="border-radius: 10px; width: 768px; height: 432px"
+          ></div>
+
+          <q-btn
+            :href="`https://www.youtube.com/watch?v=${myVid.video_id}`"
+            type="a"
+            target="_blank"
+            label="Auf YouTube Schauen"
+            class="bg-red text-white q-mb-md q-mt-md"
+          />
+          <q-btn color="orange" @click="shareVideo(myVid.video_id)" label="Link Kopieren" />
+        </div>
       </div>
 
       <div class="column justify-center items-center">
@@ -103,7 +271,13 @@ onMounted(() => {
             :key="note.noteid"
             v-for="note of notes"
           >
-            <p class="q-mx-lg text-white text-h5 q-my-auto" style="opacity: 65%">{{ note.time }}</p>
+            <p
+              class="q-mx-lg text-white text-h5 q-my-auto cursor-pointer"
+              style="opacity: 65%; text-decoration: underline"
+              @click="seekTo(note.time)"
+            >
+              {{ note.time }}
+            </p>
             <div class="bg-secondary rounded" style="width: 100%; border-radius: 35px">
               <div class="q-pa-md">
                 <p class="q-mx-none text-h4">{{ note.title }}</p>
@@ -127,6 +301,11 @@ onMounted(() => {
                   class="q-mb-lg q-mr-lg"
                 ></q-btn>
               </div>
+            </div>
+            <div class="row justify-end">
+              <p class="text-body1 text-white q-mr-md">
+                {{ convertIsoToReadable(note.created_at) }}
+              </p>
             </div>
           </div>
         </div>
@@ -155,6 +334,7 @@ onMounted(() => {
       </q-card-section>
 
       <q-card-section class="q-pt-none">
+        <p class="text-h5 text-bold">{{ lastSavedTime }}</p>
         <q-input dense v-model="addTitle" autofocus label="Titel..." />
         <q-input dense v-model="addContent" autofocus label="Inhalt..." />
       </q-card-section>

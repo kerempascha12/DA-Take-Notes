@@ -12,7 +12,8 @@ const getNotesByVideoID = (id) =>
 FROM note n
 JOIN youtube_note yn on n.noteid = yn.noteid
 JOIN video v on v.id = yn.video_id
-WHERE v.id = $1;`,
+WHERE v.id = $1
+ORDER BY yn.time;`,
     [id],
   );
 
