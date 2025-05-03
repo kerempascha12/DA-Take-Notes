@@ -58,17 +58,35 @@ const upload = async () => {
 
 <template>
   <div>
-    <q-dialog v-model="dialogModel" persistent>
-      <q-card style="min-width: 350px">
-        <q-card-section class="column">
-          <h3 class="text-success text-center mt-4" >Lade eine PDF-Datei hoch</h3>
-          <div class="row items-center">
-            <input type="file" accept="application/pdf" @change="selectPDF" class="my-3" />
-          </div>
+    <q-dialog v-model="dialogModel">
+      <q-card
+        class="bg-dark text-white q-px-md"
+        style="backdrop-filter: blur(8px); min-width: 350px"
+      >
+        <q-card-section class="text-h6 text-center"> Upload a PDF file </q-card-section>
+
+        <q-separator dark />
+
+        <q-card-section class="q-pt-md column items-center">
+          <q-icon name="upload_file" size="64px" color="accent" class="q-mb-md" />
+          <input
+            type="file"
+            accept="application/pdf"
+            @change="selectPDF"
+            class="q-mb-sm text-white"
+          />
+          <div v-if="tempPDF.name" class="text-accent text-subtitle2">{{ tempPDF.name }}</div>
         </q-card-section>
-        <q-card-actions align="right" class="text-primary">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn @click="upload" flat label="Upload PDF" v-close-popup />
+
+        <q-card-actions align="center" class="q-pb-md">
+          <q-btn flat label="Cancel" v-close-popup class="text-white" />
+          <q-btn
+            flat
+            label="Upload PDF"
+            @click="upload"
+            class="bg-accent text-white"
+            v-close-popup
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
