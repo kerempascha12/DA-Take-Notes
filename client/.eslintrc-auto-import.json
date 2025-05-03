@@ -92,6 +92,8 @@
     "useAuthStore": true,
     "usePdfStore": true,
     "usePPTStore": true,
-    "useYTStore": true
+    "useYTStore": true,
+    "pwaStore": true,
+    "usePWAStore": true
   }
 }

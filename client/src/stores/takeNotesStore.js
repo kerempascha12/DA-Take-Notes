@@ -1,5 +1,13 @@
 const baseURL = 'http://localhost:3000';
 
+export const usePWAStore = defineStore('pwa', () => {
+  const state = reactive({
+    isOnline: Boolean,
+  });
+
+  return { state };
+});
+
 export const usePdfStore = defineStore('pdf', () => {
   const state = reactive({
     allPDFs: [],

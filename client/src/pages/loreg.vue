@@ -36,7 +36,7 @@ const sendCodeToBackend = async (code) => {
     );
     authStore.setUserDetails(data);
     userDetails.value = data;
-    router.push('/notes');
+    router.push('/');
   } catch (error) {
     $q.notify({
       color: 'negative',

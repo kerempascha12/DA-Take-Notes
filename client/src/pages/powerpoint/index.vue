@@ -3,65 +3,67 @@ const pptStore = usePPTStore();
 const { allePPTs: powerPoints } = toRefs(pptStore.state);
 const router = useRouter();
 import { useAuthStore } from '@/stores/auth';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const authStore = useAuthStore();
 const userDetails = computed(() => authStore.userDetails);
 
-//PPT Hinzufügen
+// PPT Hinzufügen
 const toggleAddDialog = () => (showAddDialog.value = !showAddDialog.value);
 const showAddDialog = ref(false);
-
 const powerPointLink = ref('');
-
 const tempSrc = ref('');
 const tempWidth = ref(0);
 const tempHeight = ref(0);
 const tempName = ref('');
 
 function extractIframeAttributes(htmlString) {
-  // Accept the HTML string as parameter
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlString, 'text/html');
   const iframe = doc.querySelector('iframe');
-  if (!iframe) {
-    return { src: null, width: null, height: null };
-  }
+  if (!iframe) return { src: null, width: null, height: null };
   return {
     src: iframe.getAttribute('src'),
     width: iframe.getAttribute('width'),
     height: iframe.getAttribute('height'),
   };
 }
+
 const clearAddDialog = () => {
-  tempName.value = null;
-  powerPointLink.value = null;
-  tempSrc.value = null;
+  tempName.value = '';
+  powerPointLink.value = '';
+  tempSrc.value = '';
 };
 
 const postPPT = () => {
-  // Pass powerPointLink.value (the actual string) instead of the ref object
   const { src, width, height } = extractIframeAttributes(powerPointLink.value);
-
   tempSrc.value = src ?? '';
-  tempWidth.value = width ? parseInt(width) : 0; // Changed null to 0 for consistency
-  tempHeight.value = height ? parseInt(height) : 0; // Changed null to 0 for consistency
+  tempWidth.value = width ? parseInt(width) : 0;
+  tempHeight.value = height ? parseInt(height) : 0;
 
-  // Only proceed if we have a valid src
   if (tempSrc.value) {
     pptStore.insertPPT(tempSrc.value, tempWidth.value, tempHeight.value, tempName.value);
-    tempSrc.value = '';
-    tempWidth.value = 0;
-    tempHeight.value = 0;
-    tempName.value = '';
-    powerPointLink.value = '';
+    clearAddDialog();
   } else {
     console.error('No valid iframe found in the input');
   }
 };
 
-// PowerPoint Datei selektieren
+// Tutorial Dialog mit Carousel
+const showTutDialog = ref(false);
+const currentSlide = ref(0);
+const toggleTutDialog = () => {
+  showTutDialog.value = !showTutDialog.value;
+  currentSlide.value = 0;
+};
 
+const tutorialImages = [
+  { src: '/pptTutorial/screenshot1.png', alt: 'Schritt 1: PowerPoint erstellen' },
+  { src: '/pptTutorial/screenshot2.png', alt: 'Schritt 2: Einbettungscode kopieren' },
+  { src: '/pptTutorial/screenshot3.png', alt: 'Schritt 3: In der App einfügen' },
+];
+
+// PowerPoint Datei selektieren
 const selectPPT = async (ppt) => {
   const { data: tempDatei } = await axios.get(`http://localhost:3000/database/pptDatei/${ppt}`);
   let datei = tempDatei[0];
@@ -70,7 +72,6 @@ const selectPPT = async (ppt) => {
 };
 
 // Edit PowerPoint
-
 const editID = ref(0);
 const editName = ref('');
 const showEditDialog = ref(false);
@@ -129,6 +130,7 @@ onMounted(() => {
     <div v-else>
       <!-- Keine PowerPoints -->
       <div class="q-mx-md column items-center" v-if="powerPoints.length < 1">
+        <q-btn color="black" flat icon="info" @click="toggleTutDialog"></q-btn>
         <h2 style="font-family: 'Shrikhand'" class="column items-center text-center text-white">
           Keine PowerPoints vorhanden
         </h2>
@@ -263,8 +265,82 @@ onMounted(() => {
           </q-card-actions>
         </q-card>
       </q-dialog>
+
+      <!-- 🖼️ Verbesserter Tutorial Dialog mit Carousel -->
+      <q-dialog v-model="showTutDialog" full-width>
+        <q-card class="tutorial-card">
+          <q-carousel
+            v-model="currentSlide"
+            animated
+            arrows
+            infinite
+            height="80vh"
+            control-color="accent"
+            class="bg-dark"
+          >
+            <q-carousel-slide
+              v-for="(image, index) in tutorialImages"
+              :key="index"
+              :name="index"
+              class="column no-wrap flex-center"
+            >
+              <q-img
+                :src="image.src"
+                :alt="image.alt"
+                style="max-width: 100%; max-height: 90%"
+                fit="contain"
+                class="tutorial-image"
+              />
+              <div class="text-h6 text-white q-mt-md text-center">
+                {{ image.alt }}
+              </div>
+            </q-carousel-slide>
+          </q-carousel>
+
+          <q-card-actions align="center" class="bg-dark">
+            <q-btn flat color="white" icon="close" label="Schließen" v-close-popup />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </div>
   </div>
 </template>
 
-<style></style>
+<style scoped>
+/* Tutorial Dialog Styling */
+.tutorial-card {
+  width: 100%;
+  max-width: 1200px;
+}
+
+.tutorial-image {
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 600px) {
+  .tutorial-card {
+    width: 95%;
+  }
+
+  .tutorial-image {
+    max-height: 60vh;
+  }
+}
+
+/* PowerPoint Karten */
+.my-card {
+  transition: transform 0.3s;
+}
+
+.my-card:hover {
+  transform: translateY(-5px);
+}
+
+.pdf-iframe {
+  border: none;
+  border-radius: 4px;
+}
+</style>

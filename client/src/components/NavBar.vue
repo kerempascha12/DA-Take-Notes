@@ -3,21 +3,23 @@ import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import axios from 'axios';
 
+const router = useRouter();
+
 const authStore = useAuthStore();
 const drawer = ref(false);
 
 const menuItems = [
-  { to: '/notes', label: 'Notes', icon: 'description' },
+  { to: '/video', label: 'Video', icon: 'description' },
   { to: '/pdf', label: 'PDF', icon: 'picture_as_pdf' },
   { to: '/groups', label: 'Groups', icon: 'groups' },
-  { to: '/powerpoint', label: 'Powerpoint', icon: 'powerpoint'},
+  { to: '/powerpoint', label: 'Powerpoint', icon: 'powerpoint' },
 ];
 
 const logout = async () => {
   try {
     await axios.get('/auth/logout');
     authStore.clearUserDetails();
-    window.location.reload();
+    router.push('/');
   } catch (error) {
     console.error('Logout failed:', error);
   }
@@ -39,7 +41,7 @@ const logout = async () => {
         </router-link>
         <q-separator class="q-ma-md bold bg-white q-pt-xl" style="height: 30px" vertical />
         <q-tabs>
-          <q-route-tab style="font-size: large" to="/notes">Notes</q-route-tab>
+          <q-route-tab style="font-size: large" to="/video">Video</q-route-tab>
           <q-route-tab style="font-size: large" to="/pdf">PDF</q-route-tab>
           <q-route-tab style="font-size: large" to="/powerpoint">PowerPoint</q-route-tab>
           <q-route-tab style="font-size: large" to="/groups">Groups</q-route-tab>
