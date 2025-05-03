@@ -133,7 +133,6 @@ const addUserVideo = async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
-
 // === YouTube-Video-Info holen ===
 const getYoutubeVideoInfo = async (req, res) => {
   const { videoId } = req.query;
@@ -184,6 +183,48 @@ const deleteUserVideo = async (req, res) => {
   }
 };
 
+const toggleVideoLike = async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Unauthorized: No active session' });
+  }
+
+  const { videoId } = req.params;
+  const { liked } = req.body;
+
+  if (typeof liked !== 'boolean') {
+    return res.status(400).json({ error: 'Invalid liked value. Must be true or false.' });
+  }
+
+  try {
+    await model.updateVideoLikedStatus(videoId, req.session.userId, liked);
+    return res.status(200).json({ message: 'Video like status updated successfully.' });
+  } catch (error) {
+    console.error('Error updating like status:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+const getVideoByRandomCode = async (req, res) => {
+  const { randomCode } = req.params; // 🛠️ camelCase!
+
+  if (!randomCode) {
+    return res.status(400).json({ error: 'Missing random code.' });
+  }
+
+  try {
+    const { rows, rowCount } = await model.findVideoByRandomCode(randomCode);
+
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Video not found for given code.' });
+    }
+
+    return res.status(200).json(rows[0]);
+  } catch (error) {
+    console.error('Error in getVideoByRandomCode:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 export {
   oauth2callback,
   getUser,
@@ -193,4 +234,6 @@ export {
   addUserVideo,
   getYoutubeVideoInfo,
   deleteUserVideo,
+  toggleVideoLike,
+  getVideoByRandomCode,
 };

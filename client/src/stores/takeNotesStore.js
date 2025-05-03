@@ -25,7 +25,6 @@ export const usePdfStore = defineStore('pdf', () => {
   const postPDF = async (formdata, config, tempPDF) => {
     await axios.post(`${baseURL}/uploads`, formdata, config);
     const { data: datei } = await axios.post(`${baseURL}/database/addPDF`, tempPDF);
-    console.log('Sending tempPDF to DB:', tempPDF);
     fetchPDFs();
   };
 
@@ -60,7 +59,6 @@ export const usePdfStore = defineStore('pdf', () => {
   };
 
   const patchNote = async (title, content, noteid, pdfID) => {
-    console.log('patchNote called with:', title, content, noteid); // Debug log
     await axios.patch(`${baseURL}/database/note/${noteid}`, {
       title,
       content,
@@ -113,13 +111,11 @@ export const usePPTStore = defineStore('ppt', () => {
       height: height,
       name: name,
     });
-    console.log('PowerPoint-Datei hinzugefügt');
     getPPTs();
   };
 
   const delPPT = async (pptID) => {
     await axios.delete(`${baseURL}/database/pptDatei/${pptID}`);
-    console.log('PowerPoint-Datei gelöscht!');
     getPPTs();
   };
 

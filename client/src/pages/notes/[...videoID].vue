@@ -77,6 +77,11 @@ onMounted(() => {
 -->
 
 <script setup>
+import { ref, onMounted, watch, toRefs } from 'vue';
+import { useRoute } from 'vue-router';
+import { useQuasar } from 'quasar';
+import axios from 'axios';
+
 const ytStore = useYTStore();
 const route = useRoute();
 const baseURL = 'http://localhost:3000';
@@ -84,31 +89,37 @@ const { currentVideo: myVid } = toRefs(ytStore.state);
 const { videoNotizen: notes } = toRefs(ytStore.state);
 const $q = useQuasar();
 
+const player = ref(null);
+const lastSavedTime = ref(null);
+let isYTApiLoaded = false;
+
+const showAddDialog = ref(false);
+const addTitle = ref('');
+const addContent = ref('');
+
+const showEditDialog = ref(false);
+const editNid = ref(0);
+const editTitle = ref('');
+const editContent = ref('');
+
 watch(
   () => myVid.value.video_id,
   (newVideoId) => {
-    if (player && typeof player.loadVideoById === 'function') {
-      player.loadVideoById(newVideoId);
+    if (player.value && typeof player.value.loadVideoById === 'function') {
+      player.value.loadVideoById(newVideoId);
     } else {
-      initYouTubePlayer(); // fallback: first init
+      initYouTubePlayer(); // fallback
     }
   },
 );
 
-// Notiz Posten
-
-const showAddDialog = ref(false);
-
 const toggleAddDialog = () => {
   showAddDialog.value = !showAddDialog.value;
   getCurrentTimestamp();
-  if (showAddDialog.value && player && typeof player.pauseVideo === 'function') {
-    player.pauseVideo();
+  if (showAddDialog.value && player.value?.pauseVideo) {
+    player.value.pauseVideo();
   }
 };
-
-const addTitle = ref('');
-const addContent = ref('');
 
 const postNote = async () => {
   await ytStore.postNote(addTitle.value, addContent.value, myVid.value.id, lastSavedTime.value);
@@ -116,23 +127,13 @@ const postNote = async () => {
   addContent.value = '';
 };
 
-// Patch Note
-
-const showEditDialog = ref(false);
-
 const toggleEditDialog = (noteid) => {
   showEditDialog.value = !showEditDialog.value;
   selectNote(noteid);
-
-  // Only pause when opening dialog
-  if (showEditDialog.value && player && typeof player.pauseVideo === 'function') {
-    player.pauseVideo();
+  if (showEditDialog.value && player.value?.pauseVideo) {
+    player.value.pauseVideo();
   }
 };
-
-const editNid = ref(0);
-const editTitle = ref('');
-const editContent = ref('');
 
 const selectNote = async (noteid) => {
   const { data } = await axios.get(`${baseURL}/database/ytNote/${noteid}`);
@@ -142,32 +143,25 @@ const selectNote = async (noteid) => {
   editNid.value = data[0].noteid;
 };
 
-// Misc
-
 const shareVideo = (videoId) => {
   navigator.clipboard.writeText(`https://youtube.com/watch?v=${videoId}`);
   $q.notify({ type: 'positive', message: 'Link kopiert!' });
 };
 
-function convertIsoToReadable(dateStr) {
+const convertIsoToReadable = (dateStr) => {
   const date = new Date(dateStr);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
-
   return `${day}.${month}.${year} ${hours}:${minutes}`;
-}
-
-// --- YouTube Player API Logic ---
-
-const lastSavedTime = ref(null);
-let player = null;
+};
 
 const loadYouTubeAPI = () => {
   return new Promise((resolve) => {
-    if (window.YT && window.YT.Player) {
+    if (isYTApiLoaded || (window.YT && window.YT.Player)) {
+      isYTApiLoaded = true;
       resolve();
     } else {
       const tag = document.createElement('script');
@@ -175,6 +169,7 @@ const loadYouTubeAPI = () => {
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
       window.onYouTubeIframeAPIReady = () => {
+        isYTApiLoaded = true;
         resolve();
       };
     }
@@ -183,14 +178,13 @@ const loadYouTubeAPI = () => {
 
 const initYouTubePlayer = async () => {
   await loadYouTubeAPI();
-
-  if (player && typeof player.destroy === 'function') {
-    player.destroy();
+  if (player.value && typeof player.value.destroy === 'function') {
+    player.value.destroy();
   }
 
-  player = new window.YT.Player('player', {
-    height: '432',
-    width: '768',
+  player.value = new window.YT.Player('player', {
+    width: '100%',
+    height: '100%',
     videoId: myVid.value.video_id,
     playerVars: {
       modestbranding: 1,
@@ -207,33 +201,30 @@ const formatSecondsToHMS = (seconds) => {
 };
 
 const getCurrentTimestamp = () => {
-  if (player && typeof player.getCurrentTime === 'function') {
-    const seconds = player.getCurrentTime();
+  if (player.value?.getCurrentTime) {
+    const seconds = player.value.getCurrentTime();
     lastSavedTime.value = formatSecondsToHMS(seconds);
   }
 };
-// Zu einer bestimmten stelle skippen
+
 const seekTo = (timeStr) => {
   const parts = timeStr.split(':').map(Number);
   let seconds = 0;
 
   if (parts.length === 3) {
-    // HH:MM:SS
     seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
   } else if (parts.length === 2) {
-    // MM:SS
     seconds = parts[0] * 60 + parts[1];
   } else if (parts.length === 1) {
     seconds = parts[0];
   }
 
-  if (player && typeof player.seekTo === 'function') {
-    player.seekTo(seconds, true);
-    $q.notify({ type: 'information', message: `Gesprungen zu ${timeStr}`, timeout: 2000 });
+  if (player.value?.seekTo) {
+    player.value.seekTo(seconds, true);
+    $q.notify({ type: 'info', message: `Gesprungen zu ${timeStr}`, timeout: 2000 });
   }
 };
 
-// Andere sachen
 onMounted(() => {
   ytStore.selectVideo(route.params.videoID);
   initYouTubePlayer();
@@ -241,179 +232,221 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="q-pb-xl q-mt-xl" v-if="myVid">
-    <div class="row justify-around">
-      <div class="column">
-        <div class="column">
-          <div
-            id="player"
-            class="shadow-8"
-            style="border-radius: 10px; width: 768px; height: 432px"
-          ></div>
+  <q-page class="q-pa-md">
+    <div class="row q-col-gutter-lg wrap justify-center items-start">
+      <!-- VIDEO -->
+      <div class="col-12 col-md-6">
+        <div class="yt-wrapper">
+          <div class="yt-player-wrapper">
+            <div id="player" class="yt-player shadow-8"></div>
+          </div>
+          <div class="text-h6 text-white q-mt-md">{{ myVid.title }}</div>
 
-          <q-btn
-            :href="`https://www.youtube.com/watch?v=${myVid.video_id}`"
-            type="a"
-            target="_blank"
-            label="Auf YouTube Schauen"
-            class="bg-red text-white q-mb-md q-mt-md"
-          />
-          <q-btn color="orange" @click="shareVideo(myVid.video_id)" label="Link Kopieren" />
+          <div class="row q-mt-sm q-gutter-sm">
+            <q-btn
+              :href="`https://www.youtube.com/watch?v=${myVid.video_id}`"
+              type="a"
+              target="_blank"
+              label="Auf YouTube schauen"
+              icon="ondemand_video"
+              class="bg-red text-white"
+            />
+            <q-btn
+              color="orange"
+              icon="share"
+              label="Link kopieren"
+              @click="shareVideo(myVid.video_id)"
+            />
+          </div>
         </div>
       </div>
 
-      <div class="column justify-center items-center">
-        <div
-          class="column items-center text-h6 text-center cursor-pointer text-white"
-          style="text-decoration: none; width: 70%"
-        >
-          <p>{{ myVid.title }}</p>
-        </div>
-
-        <q-separator class="bold bg-gray-4 self-center" style="width: 30vw; margin: 0 auto" />
-
-        <div class="self-center" v-if="notes.length > 0">
-          <div
-            class="bg-accent rounded q-pb-none q-ma-md"
-            style="width: 40vw; border-radius: 40px"
-            :key="note.noteid"
-            v-for="note of notes"
-          >
-            <p
-              class="q-mx-lg text-white text-h5 q-my-auto cursor-pointer"
-              style="opacity: 65%; text-decoration: underline"
-              @click="seekTo(note.time)"
-            >
-              {{ note.time }}
-            </p>
-            <div class="bg-secondary rounded" style="width: 100%; border-radius: 35px">
-              <div class="q-pa-md">
-                <p class="q-mx-none text-h4">{{ note.title }}</p>
-                <p style="opacity: 65%">
-                  {{ note.content }}
-                </p>
-              </div>
-              <div class="row justify-end">
-                <q-btn
-                  icon="edit"
-                  @click="toggleEditDialog(note.noteid)"
-                  flat
-                  color="black"
-                  class="q-mb-lg q-mr-lg"
-                ></q-btn>
-                <q-btn
-                  icon="delete"
-                  @click="ytStore.delNote(note.noteid, myVid.id)"
-                  flat
-                  color="black"
-                  class="q-mb-lg q-mr-lg"
-                ></q-btn>
-              </div>
+      <!-- NOTIZEN -->
+      <div class="col-12 col-md-4">
+        <div class="notes-container">
+          <template v-if="notes.length > 0">
+            <div class="notes-header row justify-between items-center q-mb-sm">
+              <p class="text-h5 q-ma-none" style="font-family: Shrikhand">Notizen</p>
+              <q-btn
+                icon="add"
+                dense
+                color="accent"
+                label="Notiz hinzufügen"
+                @click="toggleAddDialog"
+                class="q-ml-sm"
+              />
             </div>
-            <div class="row justify-end">
-              <p class="text-body1 text-white q-mr-md">
-                {{ convertIsoToReadable(note.created_at) }}
-              </p>
+
+            <div class="notes-scroll q-pr-sm">
+              <transition-group name="fade" mode="out-in" tag="div">
+                <div v-for="note in notes" :key="note.noteid" class="note-card q-pa-md q-mb-md">
+                  <div class="row items-center justify-between q-mb-xs">
+                    <div class="text-subtitle1 text-weight-bold">{{ note.title }}</div>
+                    <q-badge
+                      @click="seekTo(note.time)"
+                      class="cursor-pointer text-subtitle2"
+                      color="black"
+                      outline
+                    >
+                      {{ note.time }}
+                    </q-badge>
+                  </div>
+
+                  <div class="text-body2 q-mb-sm" style="opacity: 0.85">{{ note.content }}</div>
+
+                  <div class="row justify-between items-center">
+                    <div class="text-caption">{{ convertIsoToReadable(note.created_at) }}</div>
+                    <div>
+                      <q-btn
+                        flat
+                        round
+                        icon="edit"
+                        @click="toggleEditDialog(note.noteid)"
+                        size="sm"
+                      />
+                      <q-btn
+                        flat
+                        round
+                        icon="delete"
+                        @click="ytStore.delNote(note.noteid, myVid.id)"
+                        size="sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </transition-group>
             </div>
-          </div>
-        </div>
-        <div class="self-center column items-center" v-else>
-          <h2 class="text-white" style="font-family: 'Shrikhand'">Keine Notizen vorhanden...</h2>
-          <q-btn class="bg-accent text-white" @click="toggleAddDialog" round icon="add"></q-btn>
+          </template>
+
+          <template v-else>
+            <div class="no-notes-container column items-center justify-center q-pa-xl">
+              <h5 class="no-notes-text q-mb-md">Keine Notizen vorhanden...</h5>
+              <q-btn round icon="add" color="brown" size="lg" @click="toggleAddDialog" />
+            </div>
+          </template>
         </div>
       </div>
     </div>
-  </div>
 
-  <q-btn
-    v-if="notes.length >= 1"
-    class="fixed-bottom-button bg-accent"
-    @click="toggleAddDialog"
-    round
-    icon="add"
-  ></q-btn>
+    <!-- ADD-DIALOG -->
+    <q-dialog v-model="showAddDialog" persistent>
+      <q-card style="min-width: 350px">
+        <q-card-section>
+          <div class="text-h6">Neue Notiz</div>
+        </q-card-section>
+        <q-card-section>
+          <p class="text-h5 text-bold">{{ lastSavedTime }}</p>
+          <q-input dense v-model="addTitle" autofocus label="Titel..." />
+          <q-input dense v-model="addContent" type="textarea" label="Inhalt..." />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Abbrechen" v-close-popup @click="player.value?.playVideo()" />
+          <q-btn
+            flat
+            label="Speichern"
+            @click="
+              postNote();
+              player.value?.playVideo();
+            "
+            v-close-popup
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
-  <!-- Add Dialog -->
-
-  <q-dialog v-model="showAddDialog" persistent>
-    <q-card style="min-width: 350px">
-      <q-card-section>
-        <div class="text-h6">Deine Notiz:</div>
-      </q-card-section>
-
-      <q-card-section class="q-pt-none">
-        <p class="text-h5 text-bold">{{ lastSavedTime }}</p>
-        <q-input dense v-model="addTitle" autofocus label="Titel..." />
-        <q-input dense v-model="addContent" autofocus label="Inhalt..." />
-      </q-card-section>
-
-      <q-card-actions align="right" class="text-primary">
-        <q-btn flat label="Cancel" v-close-popup @click="player.playVideo()"/>
-        <q-btn flat @click="postNote(); player.playVideo()" label="Notiz hinzufügen" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
-
-  <!-- Edit Dialog -->
-
-  <q-dialog v-model="showEditDialog" persistent>
-    <q-card style="min-width: 350px">
-      <q-card-section>
-        <div class="text-h6">Deine Notiz:</div>
-      </q-card-section>
-
-      <q-card-section class="q-pt-none">
-        <q-input dense v-model="editTitle" autofocus label="Titel..." />
-        <q-input dense v-model="editContent" autofocus label="Inhalt..." />
-      </q-card-section>
-
-      <q-card-actions align="right" class="text-primary">
-        <q-btn flat label="Cancel" v-close-popup @click="player.playVideo()" />
-        <q-btn
-          flat
-          @click="ytStore.patchNote(editNid, editTitle, editContent, myVid.id); player.playVideo();"
-          label="Notiz bearbeiten"
-          v-close-popup
-        />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
+    <!-- EDIT-DIALOG -->
+    <q-dialog v-model="showEditDialog" persistent>
+      <q-card style="min-width: 350px">
+        <q-card-section>
+          <div class="text-h6">Notiz bearbeiten</div>
+        </q-card-section>
+        <q-card-section>
+          <q-input dense v-model="editTitle" autofocus label="Titel..." />
+          <q-input dense v-model="editContent" type="textarea" label="Inhalt..." />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Abbrechen" v-close-popup @click="player.value?.playVideo()" />
+          <q-btn
+            flat
+            label="Speichern"
+            @click="
+              ytStore.patchNote(editNid, editTitle, editContent, myVid.id);
+              player.value?.playVideo();
+            "
+            v-close-popup
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </q-page>
 </template>
 
 <style scoped>
-/* Animation definieren */
-@keyframes slideIn {
-  from {
-    transform: translateY(100px); /* Startpunkt unterhalb */
-    opacity: 0; /* Unsichtbar */
-  }
-  to {
-    transform: translateY(0); /* Endposition */
-    opacity: 1; /* Sichtbar */
-  }
+.yt-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
-/* Initialer Zustand */
-.animate-on-scroll {
-  opacity: 0; /* Versteckt */
-  transform: translateY(100px); /* Position unterhalb */
-  transition: transform 0.3s ease, opacity 0.3s ease; /* Sanfter Übergang */
+.yt-player-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
-/* Zustand nach der Animation */
-.animate-on-scroll.slide-in {
-  opacity: 1;
-  transform: translateY(0); /* Zielposition */
-  animation: slideIn 0.5s ease forwards; /* Animation anwenden */
+.yt-player {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
-.fixed-bottom-button {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
+.notes-container {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #dec1a1;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.notes-header {
+  position: sticky;
+  top: 0;
+  background: inherit;
+  z-index: 1;
+}
+
+.notes-scroll {
+  overflow-y: auto;
+  flex-grow: 1;
+  max-height: 80vh;
+  padding-right: 4px;
+}
+
+.note-card {
+  background-color: #f3e2c7;
+  border-radius: 12px;
+  transition: 0.2s ease-in-out;
+}
+.note-card:hover {
+  transform: scale(1.01);
+}
+
+.no-notes-container {
+  height: 80vh;
+  text-align: center;
+}
+
+.no-notes-text {
+  font-family: 'Shrikhand', cursive;
+  font-size: 1.8rem;
   color: white;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
 }
 </style>

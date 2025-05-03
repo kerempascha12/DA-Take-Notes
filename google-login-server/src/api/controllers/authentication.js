@@ -111,7 +111,6 @@ const getUserVideo = async (req, res) => {
     if (rowCount === 0) {
       return res.status(404).json({ message: 'No video found for this user' });
     }
-    console.log(rows);
     return res.status(200).json(rows[0]); // Return the video data (e.g., video_url)
   } catch (error) {
     console.error('Error in getUserVideo function:', error);

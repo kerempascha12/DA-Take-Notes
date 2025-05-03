@@ -13,5 +13,7 @@ router.get('/user/video', controller.redirectLogin, controller.getUserVideo);
 router.post('/user/video', controller.redirectLogin, controller.addUserVideo);
 router.get('/user/youtube/video-info', controller.redirectLogin, controller.getYoutubeVideoInfo);
 router.delete('/user/video/:videoId', controller.redirectLogin, controller.deleteUserVideo);
+router.patch('/user/video/:videoId/like', controller.redirectLogin, controller.toggleVideoLike);
+router.get('/video/shared/:randomCode', controller.getVideoByRandomCode);
 
 export default router;

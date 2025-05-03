@@ -16,7 +16,6 @@ const $q = useQuasar();
 const loading = ref(false);
 const filter = ref('');
 const dialog = ref(false);
-const noteTab = ref('Youtube');
 const ytLink = ref('');
 const adding = ref(false);
 
@@ -35,6 +34,13 @@ const getVideosFromUser = async () => {
     loading.value = true;
     const { data } = await axios.get('/auth/user/video');
     videoDetails.value = data;
+
+    likedVideos.value.clear();
+    data.forEach((video) => {
+      if (video.liked) {
+        likedVideos.value.add(video.video_id);
+      }
+    });
   } catch (error) {
     if (userDetails.value) handleError(error, 'Failed to fetch video details.');
   } finally {
@@ -117,19 +123,8 @@ const addNewVideo = async () => {
   }
 };
 
-// Selektieren Video
-/*
-const selectVideo = (id) => {
-  ytStore.selectVideo(id);
-  const { currentVideo } = toRefs(ytStore.state);
-  router.push(`/notes/${currentVideo.value[0].id}`);
-  console.log(currentVideo.value)
-};
-*/
-
 const selectYouTube = async (id) => {
   const { data: tempDatei } = await axios.get(`http://localhost:3000/database/video/${id}`);
-  console.log(id);
   let datei = tempDatei[0];
   ytStore.selectVideo(datei.id);
   router.push(`/notes/${datei.id}`);
@@ -161,11 +156,22 @@ const columns = [
 ];
 
 // Herz liken
-const toggleLike = (videoId) => {
-  if (likedVideos.value.has(videoId)) {
-    likedVideos.value.delete(videoId);
-  } else {
-    likedVideos.value.add(videoId);
+const toggleLike = async (videoId) => {
+  const isLiked = likedVideos.value.has(videoId);
+
+  try {
+    await axios.patch(`/auth/user/video/${videoId}/like`, {
+      liked: !isLiked, // send the opposite because we're toggling
+    });
+
+    if (isLiked) {
+      likedVideos.value.delete(videoId);
+    } else {
+      likedVideos.value.add(videoId);
+    }
+  } catch (error) {
+    console.error('Error toggling like:', error);
+    handleError(error, 'Failed to toggle like status.');
   }
 };
 
@@ -189,111 +195,27 @@ const deleteVideo = async (videoId) => {
 
 // Gavrilos Teil, Upload von PDF Dateien
 
-const pdfStore = usePdfStore();
-
-const dialogModel = defineModel();
-
-const emit = defineEmits(['uploaded']);
-
-const selectPDF = (event) => {
-  const maxSize = 20 * 1024 * 1024; // 5 MB in bytes
-  pdf = event.target.files[0];
-
-  if (pdf) {
-    if (pdf.size > maxSize) {
-      $q.notify({
-        type: 'negative',
-        message: 'Die Datei ist zu groß. Maximal erlaubt sind 20 MB.',
-        timeout: 3000,
-      });
-      pdf = null; // clear the file
-      return;
-    }
-
-    tempPDF.value.name = pdf.name;
-    const reader = new FileReader();
-    reader.readAsDataURL(pdf);
-    reader.onload = (event) => (previewPDF.value = event.target.result);
-  }
-};
-
-let pdf = null;
-const previewPDF = ref(null);
-const tempPDF = ref({
-  name: null,
-});
-
-const upload = async () => {
-  if (!pdf) return;
-
-  let formData = new FormData();
-  formData.append('pdfdatei', pdf);
-  const config = {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  };
-
-  try {
-    pdfStore.postPDF(formData, config, tempPDF.value);
-    previewPDF.value = null;
-    emit('uploaded');
-    router.push('/pdf');
-  } catch (error) {
-    console.error('Error uploading file:', error);
-  }
-};
-
 // PowerPoint Upload
-
-const pptStore = usePPTStore();
-
-const powerPointLink = ref('');
-
-const tempSrc = ref('');
-const tempWidth = ref(0);
-const tempHeight = ref(0);
-
-function extractIframeAttributes(htmlString) {
-  // Accept the HTML string as parameter
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlString, 'text/html');
-  const iframe = doc.querySelector('iframe');
-  if (!iframe) {
-    return { src: null, width: null, height: null };
-  }
-  return {
-    src: iframe.getAttribute('src'),
-    width: iframe.getAttribute('width'),
-    height: iframe.getAttribute('height'),
-  };
-}
-
-const postPPT = () => {
-  // Pass powerPointLink.value (the actual string) instead of the ref object
-  const { src, width, height } = extractIframeAttributes(powerPointLink.value);
-
-  tempSrc.value = src ?? '';
-  tempWidth.value = width ? parseInt(width) : 0; // Changed null to 0 for consistency
-  tempHeight.value = height ? parseInt(height) : 0; // Changed null to 0 for consistency
-
-  // Only proceed if we have a valid src
-  if (tempSrc.value) {
-    pptStore.insertPPT(tempSrc.value, tempWidth.value, tempHeight.value);
-    tempSrc.value = '';
-    tempWidth.value = 0;
-    tempHeight.value = 0;
-    powerPointLink.value = '';
-  } else {
-    console.error('No valid iframe found in the input');
-  }
-};
 </script>
 
 <template>
   <div class="q-pa-lg flex flex-center">
-    <q-img v-if="!userDetails" width="35%" src="/img/monkey.webp" alt="No user available" />
-
+    <div v-if="!userDetails" class="column items-center q-mt-xl">
+      <q-img
+        src="/img/monkey.webp"
+        alt="No user available"
+        spinner-color="grey-5"
+        class="q-mt-md q-mb-xl rounded-borders gt-sm"
+        width="35vw"
+      />
+      <q-img
+        src="/img/monkey.webp"
+        alt="No user available"
+        spinner-color="grey-5"
+        class="q-mt-md q-mb-xl rounded-borders lt-md"
+        width="100vw"
+      />
+    </div>
     <div v-else>
       <div v-if="loading" class="q-pa-md flex flex-center column items-center">
         <q-spinner color="primary" size="30px" />
@@ -328,10 +250,7 @@ const postPPT = () => {
 
         <!-- Eigene Gestaltung für jede Karte -->
         <template v-slot:item="props">
-          <q-card
-            class="my-beautiful-card q-ma-md"
-            style="width: 500px; border-radius: 12px; overflow: hidden"
-          >
+          <q-card class="my-card q-ma-md bg-secondary">
             <!-- Thumbnail -->
             <q-img
               @click="selectYouTube(props.row.id)"
@@ -384,61 +303,33 @@ const postPPT = () => {
 
       <!-- Upload-Dialog -->
       <q-dialog v-model="dialog">
-        <q-card style="backdrop-filter: blur(8px)" class="bg-primary text-white">
-          <q-card-section class="q-pb-none">
-            <q-tabs v-model="noteTab" class="full-width">
-              <q-tab name="Youtube" label="Youtube" />
-              <q-tab name="PowerPoint" label="PowerPoint" />
-              <q-tab name="PDF" label="PDF" />
-            </q-tabs>
+        <q-card class="bg-dark text-white q-px-md" style="min-width: 350px">
+          <q-card-section class="text-h6 text-center q-pt-md">
+            Upload a YouTube Video
           </q-card-section>
 
-          <q-separator />
+          <q-separator dark />
 
-          <q-card-section class="q-pt-md" align="center">
-            <template v-if="noteTab === 'Youtube'">
-              <q-input
-                v-model="ytLink"
-                outlined
-                rounded
-                label="Insert a YouTube Link"
-                style="width: 80%"
-                color="negative"
-              />
-            </template>
-
-            <template v-else-if="noteTab === 'PowerPoint'">
-              <div class="column items-center">
-                <q-input outlined v-model="powerPointLink" label="PDF-Bindelink" />
-                <div class="row justify-end">
-                  <q-btn class="bg-accent" flat label="Upload PowerPoint" @click="postPPT"></q-btn>
-                </div>
-              </div>
-            </template>
-
-            <template v-else-if="noteTab === 'PDF'">
-              <div>
-                <div class="column">
-                  <h3 class="text-success text-center mt-4">Lade ein PDF-File hoch</h3>
-                  <div class="row items-center">
-                    <input type="file" accept="application/pdf" @change="selectPDF" class="my-3" />
-                  </div>
-                </div>
-                <div class="justify-end row">
-                  <q-btn flat class="bg-accent q-mr-md" label="Cancel" v-close-popup />
-                  <q-btn @click="upload" class="bg-accent" flat label="Upload PDF" v-close-popup />
-                </div>
-              </div>
-            </template>
+          <q-card-section class="q-pt-md column items-center">
+            <q-input
+              v-model="ytLink"
+              outlined
+              dark
+              rounded
+              label="Insert a YouTube Link"
+              style="width: 90%"
+              color="white"
+              class="q-mb-md"
+            />
           </q-card-section>
 
-          <q-card-actions align="center">
+          <q-card-actions align="center" class="q-pb-md">
             <q-btn
               flat
-              label="Submit"
-              color="primary"
-              class="bg-primary text-white"
+              label="UPLOAD VIDEO"
               @click="addNewVideo"
+              class="bg-accent text-white"
+              v-close-popup
             />
           </q-card-actions>
         </q-card>
@@ -448,7 +339,14 @@ const postPPT = () => {
 </template>
 
 <style scoped>
+.my-card {
+  width: 500px;
+  border-radius: 12px;
+  transition: transform 0.3s, box-shadow 0.3s;
+  overflow: hidden;
+}
 .my-card:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3) !important;
 }
 </style>

@@ -1,6 +1,11 @@
 <script setup>
 const pdfStore = usePdfStore();
 const router = useRouter();
+import { useAuthStore } from '@/stores/auth';
+import { computed } from 'vue';
+
+const authStore = useAuthStore();
+const userDetails = computed(() => authStore.userDetails);
 
 // const pdfs = ref([]);
 
@@ -13,7 +18,6 @@ const { allPDFs } = toRefs(pdfStore.state);
 
 const selectPDF = async (pdf) => {
   const { data: tempDatei } = await axios.get(`http://localhost:3000/database/pdf/${pdf}`);
-  console.log(pdf);
   let datei = tempDatei[0];
   pdfStore.selectPDF(datei.id);
   router.push(`/pdf/${datei.id}`);
@@ -23,103 +27,146 @@ onMounted(() => {
   pdfStore.fetchPDFs();
   pdfStore.state.selectedPDF.value = {};
 });
+
+const columns = [
+  {
+    name: 'pdf',
+    label: 'PDF',
+    field: (row) => row,
+  },
+];
 </script>
 
 <template>
-  <div class="q-mx-md column items-center">
-    <h2
-      v-if="allPDFs.length == 0"
-      style="font-family: 'Shrikhand'"
-      class="columnt items-center text-center text-white"
-    >
-      Keine PDFs Vorhanden
-    </h2>
-    <q-btn
-      class="bg-accent text-white q-mt-lg"
-      label="Eine PDF-Datei hochladen"
-      @click="ShowDialog"
-    ></q-btn>
+  <div class="q-pa-md">
+    <!-- Affe wenn nicht eingeloggt -->
+    <div v-if="!userDetails" class="column items-center q-mt-xl">
+      <q-img
+        src="/img/monkey.webp"
+        alt="No user available"
+        spinner-color="grey-5"
+        class="q-mt-md q-mb-xl rounded-borders gt-sm"
+        width="35vw"
+      />
+      <q-img
+        src="/img/monkey.webp"
+        alt="No user available"
+        spinner-color="grey-5"
+        class="q-mt-md q-mb-xl rounded-borders lt-md"
+        width="100vw"
+      />
+    </div>
 
-    <div class="q-pa-md row justify-center" v-if="allPDFs.length > 0">
-      <q-card
-        class="my-card cursor-pointer q-ma-lg bg-dark"
-        style="width: 400px; height: 550px"
-        v-for="pdf in allPDFs"
-        :key="pdf"
-        @click="selectPDF(pdf)"
+    <!-- Alles andere nur wenn eingeloggt -->
+    <div v-else class="q-pa-md">
+      <!-- Leerer Zustand -->
+      <h2
+        v-if="allPDFs.length === 0"
+        style="font-family: 'Shrikhand'"
+        class="text-center text-white q-mt-xl"
       >
-        <!-- Header with PDF name -->
-        <q-card-section class="bg-accent text-white">
-          <div class="text-h6 text-center text-truncate" :title="pdf">
-            {{ pdf }}
-          </div>
-        </q-card-section>
+        Keine PDFs vorhanden
+      </h2>
 
-        <!-- PDF Preview -->
-        <q-card-section class="column items-center q-pb-none">
-          <div class="pdf-preview-container">
-            <iframe
-              width="100%"
-              height="350px"
-              :src="`http://localhost:3000/pdf/${pdf}`"
-              class="pdf-iframe shadow-2"
-            />
-          </div>
-        </q-card-section>
-
-        <!-- Actions -->
-        <q-card-actions align="around" class="q-px-lg q-mt-lg q-pb-md">
-          <q-btn
-            round
-            color="red"
-            icon="delete"
-            @click.stop="ppts.deletePDF(pdf)"
-            class="shadow-1"
+      <!-- PDF Grid mit q-table im Grid-Modus -->
+      <q-table
+        flat
+        bordered
+        :rows="allPDFs"
+        :columns="columns"
+        hide-header
+        hide-pagination
+        :rows-per-page-options="[0]"
+        grid
+        class="q-mt-md"
+      >
+        <template v-slot:item="props">
+          <q-card
+            class="my-card bg-dark text-white"
+            style="width: 100%; max-width: 400px"
+            @click="selectPDF(props.row)"
           >
-            <q-tooltip>Delete PDF</q-tooltip>
-          </q-btn>
+            <!-- Header -->
+            <q-card-section class="bg-accent text-white">
+              <div class="text-h6 text-center text-truncate" :title="props.row">
+                {{ props.row }}
+              </div>
+            </q-card-section>
 
-          <q-btn round color="blue" icon="visibility" @click.stop="selectPDF(pdf)" class="shadow-1">
-            <q-tooltip>View PDF</q-tooltip>
-          </q-btn>
-        </q-card-actions>
-      </q-card>
+            <!-- Vorschau -->
+            <q-card-section class="column items-center q-pb-none">
+              <div class="pdf-preview-container">
+                <iframe
+                  width="100%"
+                  height="350px"
+                  :src="`http://localhost:3000/pdf/${props.row}`"
+                  class="pdf-iframe shadow-2"
+                />
+              </div>
+            </q-card-section>
+
+            <!-- Aktionen -->
+            <q-card-actions align="around" class="q-px-lg q-mt-lg q-pb-md">
+              <q-btn
+                round
+                color="red"
+                icon="delete"
+                @click.stop="pdfStore.deletePDF(props.row)"
+                class="shadow-1"
+              >
+                <q-tooltip>Delete PDF</q-tooltip>
+              </q-btn>
+              <q-btn
+                round
+                color="blue"
+                icon="visibility"
+                @click.stop="selectPDF(props.row)"
+                class="shadow-1"
+              >
+                <q-tooltip>View PDF</q-tooltip>
+              </q-btn>
+            </q-card-actions>
+          </q-card>
+        </template>
+      </q-table>
+
+      <!-- Sticky Upload-Button -->
+      <q-page-sticky position="bottom-right" :offset="[50, 50]" class="z-top">
+        <q-btn size="lg" round push color="accent" icon="fa-solid fa-plus" @click="ShowDialog" />
+      </q-page-sticky>
+
+      <!-- Upload-Dialog -->
+      <UploadDialog v-model="showDialog" />
     </div>
   </div>
-  <UploadDialog v-model="showDialog"></UploadDialog>
 </template>
-<style>
+
+<style scoped>
 .my-card {
   transition: transform 0.3s, box-shadow 0.3s;
   border-radius: 10px;
   overflow: hidden;
+  margin: 1rem auto;
 }
 
 .my-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3) !important;
 }
 
 .pdf-preview-container {
-  position: relative;
   width: 100%;
-  border: 1px solid #333333;
+  border: 1px solid #333;
   border-radius: 8px;
   overflow: hidden;
-}
-
-.pdf-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .pdf-iframe {
   border: none;
   border-radius: 8px;
+}
+
+.z-top {
+  z-index: 2000;
 }
 </style>

@@ -1,7 +1,156 @@
+<template>
+  <div class="q-pa-md" style="min-height: 100vh">
+    <!-- Wenn nicht eingeloggt -->
+    <div v-if="!userDetails" class="column items-center q-mt-xl">
+      <q-img
+        src="/img/monkey.webp"
+        alt="No user available"
+        spinner-color="grey-5"
+        class="q-mt-md q-mb-xl rounded-borders gt-sm"
+        width="35vw"
+      />
+      <q-img
+        src="/img/monkey.webp"
+        alt="No user available"
+        spinner-color="grey-5"
+        class="q-mt-md q-mb-xl rounded-borders lt-md"
+        width="100vw"
+      />
+    </div>
+
+    <!-- Wenn eingeloggt -->
+    <template v-else>
+      <div class="row justify-end q-gutter-md q-mb-md">
+        <q-btn label="➕ Create Group" color="primary" @click="createDialog = true" unelevated />
+        <q-btn label="🔗 Join Group" color="primary" @click="joinDialog = true" unelevated />
+      </div>
+
+      <q-table
+        flat
+        bordered
+        grid
+        title="My Groups"
+        :rows="groups"
+        :columns="columns"
+        row-key="id"
+        :filter="filter"
+        hide-header
+      >
+        <template v-slot:top-right>
+          <q-input
+            borderless
+            dense
+            debounce="300"
+            v-model="filter"
+            placeholder="Search Groups"
+            class="q-ml-md"
+          >
+            <template v-slot:append>
+              <q-icon name="search" />
+            </template>
+          </q-input>
+        </template>
+
+        <template v-slot:item="props">
+          <div class="full-width flex flex-center">
+            <q-card class="q-ma-sm q-pa-md group-card">
+              <q-card-section class="q-pa-none">
+                <div class="row items-center justify-between">
+                  <div class="text-h6 q-pa-md">{{ props.row.name }}</div>
+                  <q-btn flat dense round icon="more_vert" color="dark" class="q-mr-sm">
+                    <q-menu>
+                      <q-list style="min-width: 120px">
+                        <q-item clickable v-close-popup @click="deleteGroup(props.row.id)">
+                          <q-item-section avatar>
+                            <q-icon name="delete" color="negative" />
+                          </q-item-section>
+                          <q-item-section>Delete</q-item-section>
+                        </q-item>
+                        <q-item
+                          clickable
+                          v-close-popup
+                          @click="copyGroupCode(props.row.random_code)"
+                        >
+                          <q-item-section avatar>
+                            <q-icon name="share" />
+                          </q-item-section>
+                          <q-item-section>Share</q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-menu>
+                  </q-btn>
+                </div>
+              </q-card-section>
+
+              <q-separator />
+
+              <q-card-section class="text-center">
+                <div class="text-caption">Code: {{ props.row.random_code }}</div>
+                <div class="text-caption">Video: {{ props.row.video_id || 'None' }}</div>
+                <div class="text-caption">Created: {{ props.row.created_at }}</div>
+                <q-btn
+                  v-if="props.row.video_id"
+                  label="▶ Watch Video"
+                  :to="`/watch/${props.row.video_id}`"
+                  color="primary"
+                  flat
+                  class="q-mt-md"
+                />
+              </q-card-section>
+            </q-card>
+          </div>
+        </template>
+      </q-table>
+
+      <!-- Create Group Dialog -->
+      <q-dialog v-model="createDialog">
+        <q-card class="q-pa-md">
+          <q-card-section>
+            <div class="text-h6">Create a New Group</div>
+          </q-card-section>
+          <q-card-section>
+            <q-input v-model="newGroupName" label="Group Name" filled class="q-mb-md" />
+            <q-select
+              filled
+              v-model="selectedVideoCode"
+              :options="userVideos"
+              label="Select Video"
+            />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn flat label="Create" color="primary" @click="createGroup" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <!-- Join Group Dialog -->
+      <q-dialog v-model="joinDialog">
+        <q-card class="q-pa-md">
+          <q-card-section>
+            <div class="text-h6">Join a Group</div>
+          </q-card-section>
+          <q-card-section>
+            <q-input v-model="joinGroupCode" label="Group Code" filled />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn flat label="Join" color="secondary" @click="joinGroup" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+    </template>
+  </div>
+</template>
+
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import axios from 'axios';
+import { useAuthStore } from '@/stores/auth';
+
+const auth = useAuthStore();
+const userDetails = computed(() => auth.userDetails !== null);
 
 const $q = useQuasar();
 const groups = ref([]);
@@ -26,14 +175,11 @@ const fetchUserVideos = async () => {
   try {
     const { data } = await axios.get('/auth/user/video', { withCredentials: true });
     userVideos.value = Array.isArray(data)
-      ? data.map((video) => ({
-          label: video.title,
-          value: video.random_code,
-        }))
+      ? data.map((video) => ({ label: video.title, value: video.random_code }))
       : [];
   } catch (error) {
-    console.warn('No videos found or failed to load videos.'); // Nur Warnung
-    userVideos.value = []; // Leeres Array setzen, damit kein Fehler passiert!
+    console.warn('No videos found or failed to load videos.');
+    userVideos.value = [];
   }
 };
 
@@ -43,7 +189,6 @@ const createGroup = async () => {
     return;
   }
   try {
-    console.log(selectedVideoCode.value.value);
     await axios.post(
       '/groups',
       {
@@ -68,33 +213,14 @@ const joinGroup = async () => {
     return;
   }
   try {
-    console.log('Sending join request for code:', joinGroupCode.value);
-    const response = await axios.post(
-      `/groups/join/${joinGroupCode.value}`,
-      {}, // Keine Daten nötig
-      { withCredentials: true },
-    );
-
-    console.log('Join response:', response.data);
-
+    await axios.post(`/groups/join/${joinGroupCode.value}`, {}, { withCredentials: true });
     joinGroupCode.value = '';
     joinDialog.value = false;
     fetchGroups();
     $q.notify({ type: 'positive', message: 'Joined group successfully!' });
   } catch (error) {
-    console.error('Join group failed:', error.response?.data || error.message);
-
     if (error.response) {
-      if (error.response.status === 400) {
-        $q.notify({
-          type: 'negative',
-          message: error.response.data.error || 'Invalid group code.',
-        });
-      } else if (error.response.status === 401) {
-        $q.notify({ type: 'negative', message: 'You must be logged in.' });
-      } else {
-        $q.notify({ type: 'negative', message: 'Failed to join group. Try again.' });
-      }
+      $q.notify({ type: 'negative', message: error.response.data.error || 'Failed to join group' });
     } else {
       $q.notify({ type: 'negative', message: 'No response from server.' });
     }
@@ -129,127 +255,21 @@ const columns = [
 ];
 </script>
 
-<template>
-  <div class="q-pa-md" style="min-height: 100vh">
-    <div class="row justify-end q-gutter-md q-mb-md">
-      <q-btn label="➕ Create Group" color="primary" @click="createDialog = true" unelevated />
-      <q-btn label="🔗 Join Group" color="primary" @click="joinDialog = true" unelevated />
-    </div>
-
-    <q-table
-      flat
-      bordered
-      grid
-      title="My Groups"
-      :rows="groups"
-      :columns="columns"
-      row-key="id"
-      :filter="filter"
-      hide-header
-    >
-      <template v-slot:top-right>
-        <q-input
-          borderless
-          dense
-          debounce="300"
-          v-model="filter"
-          placeholder="Search Groups"
-          class="q-ml-md"
-        >
-          <template v-slot:append>
-            <q-icon name="search" />
-          </template>
-        </q-input>
-      </template>
-
-      <template v-slot:item="props">
-        <div class="full-width flex flex-center">
-          <q-card
-            class="q-ma-sm q-pa-md bg-grey-2 text-dark"
-            style="min-width: 250px; max-width: 300px"
-          >
-            <q-card-section class="q-pa-none">
-              <div class="row items-center justify-between">
-                <div class="text-h6 q-pa-md">{{ props.row.name }}</div>
-                <q-btn flat dense round icon="more_vert" color="dark" class="q-mr-sm">
-                  <q-menu>
-                    <q-list style="min-width: 120px">
-                      <q-item clickable v-close-popup @click="deleteGroup(props.row.id)">
-                        <q-item-section avatar>
-                          <q-icon name="delete" color="negative" />
-                        </q-item-section>
-                        <q-item-section>Delete</q-item-section>
-                      </q-item>
-                      <q-item clickable v-close-popup @click="copyGroupCode(props.row.random_code)">
-                        <q-item-section avatar>
-                          <q-icon name="share" />
-                        </q-item-section>
-                        <q-item-section>Share</q-item-section>
-                      </q-item>
-                    </q-list>
-                  </q-menu>
-                </q-btn>
-              </div>
-            </q-card-section>
-
-            <q-separator />
-
-            <q-card-section class="text-center">
-              <div class="text-caption">Group ID: {{ props.row.id }}</div>
-              <div class="text-caption">Group Code: {{ props.row.random_code }}</div>
-              <div class="text-caption">Video Code: {{ props.row.video_id || 'None' }}</div>
-              <div class="text-caption">Created: {{ props.row.created_at }}</div>
-              <q-btn
-                v-if="props.row.video_id"
-                label="▶ Watch Video"
-                :to="`/watch/${props.row.video_id}`"
-                color="primary"
-                flat
-                class="q-mt-md"
-              />
-            </q-card-section>
-          </q-card>
-        </div>
-      </template>
-    </q-table>
-
-    <!-- Create Group Dialog -->
-    <q-dialog v-model="createDialog">
-      <q-card class="q-pa-md">
-        <q-card-section>
-          <div class="text-h6">Create a New Group</div>
-        </q-card-section>
-        <q-card-section>
-          <q-input v-model="newGroupName" label="Group Name" filled class="q-mb-md" />
-          <q-select filled v-model="selectedVideoCode" :options="userVideos" label="Select Video" />
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" color="primary" v-close-popup />
-          <q-btn flat label="Create" color="primary" @click="createGroup" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <!-- Join Group Dialog -->
-    <q-dialog v-model="joinDialog">
-      <q-card class="q-pa-md">
-        <q-card-section>
-          <div class="text-h6">Join a Group</div>
-        </q-card-section>
-        <q-card-section>
-          <q-input v-model="joinGroupCode" label="Group Code" filled />
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" color="primary" v-close-popup />
-          <q-btn flat label="Join" color="secondary" @click="joinGroup" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-  </div>
-</template>
-
 <style scoped>
 .text-h6 {
   font-weight: bold;
+}
+
+.group-card {
+  background: #f9f9f9;
+  border-radius: 12px;
+  transition: box-shadow 0.3s;
+  width: 100%;
+  max-width: 340px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.group-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 </style>
