@@ -129,8 +129,7 @@ onMounted(() => {
     <!-- 📂 Inhalte wenn eingeloggt -->
     <div v-else>
       <!-- Keine PowerPoints -->
-      <div class="q-mx-md column items-center" v-if="powerPoints.length < 1">
-        <q-btn color="black" flat icon="info" @click="toggleTutDialog"></q-btn>
+      <div class="q-mt-xl text-center column items-center" v-if="powerPoints.length < 1">
         <h2 style="font-family: 'Shrikhand'" class="column items-center text-center text-white">
           Keine PowerPoints vorhanden
         </h2>
@@ -139,10 +138,13 @@ onMounted(() => {
       <!-- Upload Button -->
       <div class="column items-center q-mb-lg">
         <q-btn
-          class="bg-accent text-white q-mt-lg"
-          label="Eine PPT-Datei hochladen"
-          @click="toggleAddDialog"
-        />
+          label="Tutorial"
+          class="text-weight-bold"
+          color="black"
+          flat
+          icon="info"
+          @click="toggleTutDialog"
+        ></q-btn>
       </div>
 
       <!-- PowerPoint Karten -->
