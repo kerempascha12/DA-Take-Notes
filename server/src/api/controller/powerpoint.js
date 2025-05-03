@@ -3,8 +3,7 @@ import * as models from '../model/powerpoint.js';
 // PowerPoint Dateien
 
 const getPowerPoints = async (req, res) => {
-  const { rows, rowCount } = await models.getPowerPoints();
-  if (rowCount < 1) return res.status(400).send('Keine PowerPoint Dateien existieren');
+  const { rows } = await models.getPowerPoints();
   return res.status(200).json(rows);
 };
 
@@ -66,13 +65,15 @@ const insertPPTNote = async (req, res) => {
 
 const getNoteByID = async (req, res) => {
   const { rows, rowCount } = await models.getNoteByID(req.params);
-  if (rowCount < 1) return res.status(400).send(`Keine Notiz mit dem ID ${req.params.nid} gefunden.`);
+  if (rowCount < 1)
+    return res.status(400).send(`Keine Notiz mit dem ID ${req.params.nid} gefunden.`);
   return res.status(200).json(rows);
 };
 
 const delNote = async (req, res) => {
   const { rowCount } = await models.getNoteByID(req.params);
-  if (rowCount < 1) return res.status(400).send(`Keine Notiz mit dem ID ${req.params.nid} gefunden.`);
+  if (rowCount < 1)
+    return res.status(400).send(`Keine Notiz mit dem ID ${req.params.nid} gefunden.`);
   await models.delPPTNote(req.params);
   return res.status(200).send(`Notiz ${req.params.nid} deleted.`);
 };
